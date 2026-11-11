@@ -68,7 +68,9 @@ not via notifications, not via the API, not by inference.
     browser, sees the list and can claim. Huge for adoption.
 11. **Privacy & trust** — account deletion, data export, block/report on public
     lists (also required by App Store / Play policy).
-12. **Localization incl. RTL** from day one (layout mirroring on both platforms).
+12. **Localization from day one: English, Hebrew, Arabic, Russian** — two RTL
+    languages, so every screen is built with logical (leading/trailing) layout,
+    mirrored icons where meaningful, and per-script fonts.
 
 ### 1.5 Notifications
 
@@ -98,7 +100,9 @@ local notifications as an offline fallback for your own occasions.
 - "About me" card
 - Activity feed (claim-safe)
 - Widgets (iOS WidgetKit, Android Glance)
-- Dark mode, Dynamic Type / font scaling, VoiceOver/TalkBack, RTL
+- Dark mode, Dynamic Type / font scaling, VoiceOver/TalkBack
+- Languages: English, Hebrew, Arabic, Russian (RTL + Cyrillic), locale-aware
+  dates, numbers and currencies (₪, $, €, ₽, AED…)
 - Account deletion & data export
 - Offline-first reading, optimistic writes
 
@@ -114,10 +118,29 @@ local notifications as an offline fallback for your own occasions.
 
 ---
 
-## 2. Design direction — "Ribbon & Paper"
+## 2. Design direction — "Ribbon & Paper", in 3D
 
-Goal: warm, tactile, alive. It should feel like a beautifully wrapped present,
-not a settings screen. **Not** stock Material / stock iOS lists.
+Goal: warm, tactile, alive and **dimensional, not flat**. It should feel like a
+beautifully wrapped present, not a settings screen. **Not** stock Material /
+stock iOS lists.
+
+Three 3D directions were mocked up for review (A · Ribbon & Paper 3D,
+B · Velvet Night, C · Puffy Clay) plus an interactive wish detail and a Hebrew
+RTL home. Pending pick; A is the working default and B is a natural dark mode
+for it.
+
+### 2.0 How "3D" is achieved
+- **Real 3D objects**: the gift box is a true 3D object (SceneKit/RealityKit
+  `Model3D` on iOS, Filament or a lightweight GL scene on Android) that spins,
+  floats, and reacts to the device's tilt (CoreMotion / SensorManager).
+- **Lit materials**: wish "orbs", avatars and buttons use sphere lighting
+  (specular highlight + occlusion shading), not flat fills.
+- **Layered depth**: cards have multi-layer shadows, inner highlights and sit
+  at different Z heights; the hero card leans back in perspective.
+- **Parallax**: product images tilt with the phone (gyroscope) and with drag,
+  with a moving specular shine.
+- **Physical motion**: springs, squash-and-stretch on the add button, the
+  ribbon physically wrapping a claimed wish, sparkle burst.
 
 ### 2.1 Identity
 - **Palette** — warm paper canvas (`#FBF6EF`), ink plum text (`#2A1730`),
@@ -127,9 +150,11 @@ not a settings screen. **Not** stock Material / stock iOS lists.
 - **Person hues** — every person gets a stable signature hue (derived from their
   id) used for their avatar ring, list header aura and occasion chips, so you
   instantly know whose wishes you're looking at.
-- **Type** — expressive variable serif for display (Fraunces, OFL) paired with
-  the platform system face for body (SF Pro / Roboto Flex) for legibility and
-  Dynamic Type.
+- **Type** — expressive serif for display paired with the platform system
+  face for body (SF Pro / Roboto) for legibility and Dynamic Type. Display
+  face per script: Fraunces (Latin), a Cyrillic-capable serif such as
+  Playfair Display or Lora (Russian), Frank Ruhl Libre (Hebrew), and a Naskh
+  face such as Noto Naskh Arabic (Arabic). All OFL-licensed and bundled.
 - **Shape** — soft "gift tag" cards (large radius, one notched corner),
   generous whitespace, image-first masonry grid.
 
