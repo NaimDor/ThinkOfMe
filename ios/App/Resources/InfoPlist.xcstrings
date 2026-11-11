@@ -1,0 +1,35 @@
+{
+  "sourceLanguage": "en",
+  "strings": {
+    "NSUserTrackingUsageDescription": {
+      "extractionState": "manual",
+      "localizations": {
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Lets us show ads that are more relevant to you. ThinkOfMe works the same either way."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "מאפשר להציג מודעות רלוונטיות יותר. ThinkOfMe עובדת אותו דבר בכל מקרה."
+          }
+        },
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "يتيح لنا عرض إعلانات أكثر ملاءمة لك. يعمل ThinkOfMe بالطريقة نفسها في كل الأحوال."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Позволяет показывать более подходящую рекламу. ThinkOfMe работает одинаково в любом случае."
+          }
+        }
+      }
+    }
+  },
+  "version": "1.0"
+}

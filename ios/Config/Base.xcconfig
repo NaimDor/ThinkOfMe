@@ -1,0 +1,8 @@
+// Shared settings. Real values for release live in Secrets.xcconfig (git-ignored).
+// Google's public test app id; replace via Secrets.xcconfig for release builds.
+GAD_APPLICATION_ID = ca-app-pub-3940256099942544~1458002511
+TOM_NATIVE_AD_UNIT_ID =
+TOM_BANNER_AD_UNIT_ID =
+// From GoogleService-Info.plist (REVERSED_CLIENT_ID); enables Google sign-in.
+GOOGLE_REVERSED_CLIENT_ID = com.googleusercontent.apps.placeholder
+DEVELOPMENT_TEAM =

@@ -1,0 +1,109 @@
+# Generate the Xcode project with: cd ios && xcodegen
+name: ThinkOfMe
+options:
+  bundleIdPrefix: com.thinkofme
+  deploymentTarget:
+    iOS: "18.0"
+  developmentLanguage: en
+  createIntermediateGroups: true
+  groupSortPosition: top
+
+settings:
+  base:
+    MARKETING_VERSION: 0.1.0
+    CURRENT_PROJECT_VERSION: 1
+
+packages:
+  Core:
+    path: Packages/Core
+  DesignSystem:
+    path: Packages/DesignSystem
+  Firebase:
+    url: https://github.com/firebase/firebase-ios-sdk
+    from: 13.1.0
+  GoogleMobileAds:
+    url: https://github.com/googleads/swift-package-manager-google-mobile-ads
+    from: 13.12.0
+  GoogleUserMessagingPlatform:
+    url: https://github.com/googleads/swift-package-manager-google-user-messaging-platform
+    from: 3.1.0
+  GoogleSignIn:
+    url: https://github.com/google/GoogleSignIn-iOS
+    from: 10.1.0
+
+targets:
+  ThinkOfMe:
+    type: application
+    platform: iOS
+    configFiles:
+      Debug: Config/Debug.xcconfig
+      Release: Config/Release.xcconfig
+    sources:
+      - path: App
+        excludes:
+          - "Info.plist"
+          - "*.entitlements"
+    dependencies:
+      - package: Core
+      - package: DesignSystem
+      - package: Firebase
+        product: FirebaseAuth
+      - package: Firebase
+        product: FirebaseFirestore
+      - package: Firebase
+        product: FirebaseFunctions
+      - package: Firebase
+        product: FirebaseMessaging
+      - package: GoogleMobileAds
+      - package: GoogleUserMessagingPlatform
+      - package: GoogleSignIn
+        product: GoogleSignIn
+    info:
+      path: App/Info.plist
+      properties:
+        CFBundleDisplayName: ThinkOfMe
+        CFBundleLocalizations: [en, he, ar, ru]
+        CFBundleAllowMixedLocalizations: true
+        ITSAppUsesNonExemptEncryption: false
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UIBackgroundModes: [remote-notification]
+        UISupportedInterfaceOrientations: [UIInterfaceOrientationPortrait]
+        GADApplicationIdentifier: $(GAD_APPLICATION_ID)
+        TOMNativeAdUnitID: $(TOM_NATIVE_AD_UNIT_ID)
+        TOMBannerAdUnitID: $(TOM_BANNER_AD_UNIT_ID)
+        NSUserTrackingUsageDescription: Lets us show ads that are more relevant to you. ThinkOfMe works the same either way.
+        SKAdNetworkItems:
+          - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
+        CFBundleURLTypes:
+          - CFBundleURLName: com.thinkofme.app
+            CFBundleURLSchemes: [thinkofme]
+          - CFBundleURLName: google-sign-in
+            CFBundleURLSchemes: [$(GOOGLE_REVERSED_CLIENT_ID)]
+    entitlements:
+      path: App/ThinkOfMe.entitlements
+      properties:
+        aps-environment: $(APS_ENVIRONMENT)
+        com.apple.developer.applesignin: [Default]
+        com.apple.developer.associated-domains: [applinks:thinkofme.app]
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.thinkofme.app
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        SWIFT_VERSION: "5.0"
+        SWIFT_STRICT_CONCURRENCY: targeted
+        LOCALIZATION_PREFERS_STRING_CATALOGS: YES
+        ENABLE_USER_SCRIPT_SANDBOXING: YES
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"
+
+schemes:
+  ThinkOfMe:
+    build:
+      targets:
+        ThinkOfMe: all
+    run:
+      config: Debug
+    archive:
+      config: Release

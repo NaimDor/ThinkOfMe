@@ -42,3 +42,6 @@ backend/.firebase/
 firebase-debug.log
 firestore-debug.log
 ui-debug.log
+ios/Config/Secrets.xcconfig
+ios/App/Info.plist
+ios/App/ThinkOfMe.entitlements
