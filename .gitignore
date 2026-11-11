@@ -1,0 +1,44 @@
+# --- Secrets: this repo is public. Never commit these. ---
+GoogleService-Info.plist
+google-services.json
+*.p8
+*.p12
+*.mobileprovision
+*.jks
+*.keystore
+keystore.properties
+.env
+.env.*
+!.env.example
+service-account*.json
+
+# --- macOS / editors ---
+.DS_Store
+.idea/
+*.iml
+.vscode/
+
+# --- iOS ---
+ios/**/xcuserdata/
+ios/**/DerivedData/
+ios/build/
+*.xcodeproj/project.xcworkspace/xcshareddata/swiftpm/
+.swiftpm/
+ios/*.xcodeproj
+ios/*.xcworkspace
+
+# --- Android ---
+android/.gradle/
+android/build/
+android/**/build/
+android/local.properties
+android/captures/
+android/.kotlin/
+
+# --- Backend ---
+backend/functions/node_modules/
+backend/functions/lib/
+backend/.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
