@@ -1,0 +1,137 @@
+name: TestFlight
+
+# Builds a signed release of the iOS app and uploads it to TestFlight.
+# Start it from GitHub → Actions → TestFlight → "Run workflow" (works on the phone),
+# or by pushing a tag like ios-v0.1.0.
+#
+# Required repository secrets (Settings → Secrets and variables → Actions):
+#   APPLE_TEAM_ID                  10-character Team ID (developer.apple.com → Membership)
+#   APP_STORE_CONNECT_KEY_ID       App Store Connect API key ID
+#   APP_STORE_CONNECT_ISSUER_ID    App Store Connect API issuer ID
+#   APP_STORE_CONNECT_KEY_P8       Contents of the downloaded AuthKey_XXXX.p8 file
+# Optional:
+#   GOOGLE_SERVICE_INFO_PLIST_B64  base64 of GoogleService-Info.plist (without it the build runs in demo mode)
+#   ADMOB_APP_ID_IOS, ADMOB_NATIVE_UNIT_IOS, ADMOB_BANNER_UNIT_IOS (without them Google's test ads are shown)
+
+on:
+  workflow_dispatch:
+  push:
+    tags: ["ios-v*"]
+
+concurrency:
+  group: testflight
+  cancel-in-progress: false
+
+jobs:
+  upload:
+    runs-on: macos-latest
+    timeout-minutes: 60
+    defaults:
+      run:
+        working-directory: ios
+    steps:
+      - uses: actions/checkout@v5
+      - uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: latest-stable
+      - name: Install XcodeGen
+        run: brew install xcodegen
+
+      - name: Check secrets
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          KEY: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+        run: |
+          missing=""
+          [ -z "$TEAM" ] && missing="$missing APPLE_TEAM_ID"
+          [ -z "$KEY_ID" ] && missing="$missing APP_STORE_CONNECT_KEY_ID"
+          [ -z "$ISSUER" ] && missing="$missing APP_STORE_CONNECT_ISSUER_ID"
+          [ -z "$KEY" ] && missing="$missing APP_STORE_CONNECT_KEY_P8"
+          if [ -n "$missing" ]; then echo "::error::Missing repository secrets:$missing"; exit 1; fi
+
+      - name: Write API key, config and secrets
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          KEY: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          PLIST_B64: ${{ secrets.GOOGLE_SERVICE_INFO_PLIST_B64 }}
+          ADMOB_APP: ${{ secrets.ADMOB_APP_ID_IOS }}
+          ADMOB_NATIVE: ${{ secrets.ADMOB_NATIVE_UNIT_IOS }}
+          ADMOB_BANNER: ${{ secrets.ADMOB_BANNER_UNIT_IOS }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/keys"
+          printf '%s\n' "$KEY" > "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8"
+          {
+            echo "DEVELOPMENT_TEAM = $TEAM"
+            [ -n "$ADMOB_APP" ] && echo "GAD_APPLICATION_ID = $ADMOB_APP"
+            [ -n "$ADMOB_NATIVE" ] && echo "TOM_NATIVE_AD_UNIT_ID = $ADMOB_NATIVE"
+            [ -n "$ADMOB_BANNER" ] && echo "TOM_BANNER_AD_UNIT_ID = $ADMOB_BANNER"
+            true
+          } > Config/Secrets.xcconfig
+          if [ -n "$PLIST_B64" ]; then
+            echo "$PLIST_B64" | base64 --decode > App/GoogleService-Info.plist
+            reversed=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" App/GoogleService-Info.plist)
+            echo "GOOGLE_REVERSED_CLIENT_ID = $reversed" >> Config/Secrets.xcconfig
+            echo "Firebase config found: building against your Firebase project."
+          else
+            echo "::notice::No GoogleService-Info.plist secret: this build runs in demo mode."
+          fi
+
+      - name: Generate Xcode project
+        run: xcodegen
+
+      - name: Archive
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          set -o pipefail
+          xcodebuild archive \
+            -project ThinkOfMe.xcodeproj -scheme ThinkOfMe -configuration Release \
+            -destination 'generic/platform=iOS' -archivePath "$RUNNER_TEMP/ThinkOfMe.xcarchive" \
+            -skipPackagePluginValidation -skipMacroValidation \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
+            DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
+            CURRENT_PROJECT_VERSION="${{ github.run_number }}" | tee archive.log | grep -E "error:|ARCHIVE" || true
+          grep -q "ARCHIVE SUCCEEDED" archive.log
+
+      - name: Upload to TestFlight
+        env:
+          KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ISSUER: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          cat > "$RUNNER_TEMP/ExportOptions.plist" <<EOF
+          <?xml version="1.0" encoding="UTF-8"?>
+          <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+          <plist version="1.0">
+          <dict>
+            <key>method</key><string>app-store-connect</string>
+            <key>destination</key><string>upload</string>
+            <key>teamID</key><string>$TEAM</string>
+            <key>signingStyle</key><string>automatic</string>
+            <key>manageAppVersionAndBuildNumber</key><false/>
+            <key>testFlightInternalTestingOnly</key><false/>
+          </dict>
+          </plist>
+          EOF
+          xcodebuild -exportArchive \
+            -archivePath "$RUNNER_TEMP/ThinkOfMe.xcarchive" \
+            -exportOptionsPlist "$RUNNER_TEMP/ExportOptions.plist" \
+            -exportPath "$RUNNER_TEMP/export" \
+            -allowProvisioningUpdates \
+            -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" \
+            -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER"
+          echo "::notice::Uploaded build ${{ github.run_number }}. It appears in TestFlight after Apple finishes processing (usually 5-20 minutes)."
+
+      - name: Upload logs
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: testflight-logs
+          path: ios/archive.log
