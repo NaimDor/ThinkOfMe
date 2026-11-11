@@ -168,29 +168,32 @@ clear disclosure. Planned for v1.1, alongside ads.
 
 ---
 
-## 2. Design direction — "Ribbon & Paper", in 3D
+## 2. Design direction: "Ribbon & Paper", calm screens and 3D moments
 
-Goal: warm, tactile, alive and **dimensional, not flat**. It should feel like a
-beautifully wrapped present, not a settings screen. **Not** stock Material /
-stock iOS lists.
+Goal: warm, calm and uncluttered at rest, and delightful at the moments that
+matter. It should feel like a beautifully wrapped present, not a settings
+screen. **Not** stock Material or stock iOS lists.
 
-Three 3D directions were mocked up for review (A · Ribbon & Paper 3D,
-B · Velvet Night, C · Puffy Clay) plus an interactive wish detail and a Hebrew
-RTL home. Pending pick; A is the working default and B is a natural dark mode
-for it.
+**Decided (v2 mockups, "Calm v2" page on the design canvas):**
+- **Colors**: light theme uses A's palette (cream paper, plum ink, coral
+  accent); dark theme uses B's palette (velvet aubergine, gold accent).
+- **Calm static screens**: one focal point per screen, flat surfaces with at
+  most one soft shadow, generous whitespace, hairline dividers, color used
+  as an accent only. Real product photos carry the visual richness, so the
+  surrounding interface stays quiet.
+- **3D only in moments** (see 2.0). The v1 explorations (heavy 3D on every
+  screen) were judged too cluttered.
 
-### 2.0 How "3D" is achieved
-- **Real 3D objects**: the gift box is a true 3D object (SceneKit/RealityKit
-  `Model3D` on iOS, Filament or a lightweight GL scene on Android) that spins,
-  floats, and reacts to the device's tilt (CoreMotion / SensorManager).
-- **Lit materials**: wish "orbs", avatars and buttons use sphere lighting
-  (specular highlight + occlusion shading), not flat fills.
-- **Layered depth**: cards have multi-layer shadows, inner highlights and sit
-  at different Z heights; the hero card leans back in perspective.
-- **Parallax**: product images tilt with the phone (gyroscope) and with drag,
-  with a moving specular shine.
-- **Physical motion**: springs, squash-and-stretch on the add button, the
-  ribbon physically wrapping a claimed wish, sparkle burst.
+### 2.0 Where 3D and motion live ("moments")
+| Moment | What happens |
+|---|---|
+| **Wrap it** (claiming a wish) | The photo card lifts and tilts in 3D, a gold ribbon wraps it, a bow springs on, sparkles burst, with a haptic sequence. It then settles back flat, keeping a slim ribbon. |
+| **Occasion day** | A 3D gift box (RealityKit `Model3D` on iOS; Filament on Android) drops in and opens, with confetti in the person's color. |
+| **Adding a wish** | The new card flies into the list with a spring; the add button squashes. |
+| **Pull-to-refresh / empty states / onboarding** | A small 3D gift box that reacts to device tilt. |
+| **Wish photo** | Subtle tilt parallax only while the user drags or long-presses it, not at rest. |
+
+Everything respects Reduce Motion, which swaps each moment for a simple fade.
 
 ### 2.1 Identity
 - **Palette** — warm paper canvas (`#FBF6EF`), ink plum text (`#2A1730`),
@@ -205,8 +208,8 @@ for it.
   face per script: Fraunces (Latin), a Cyrillic-capable serif such as
   Playfair Display or Lora (Russian), Frank Ruhl Libre (Hebrew), and a Naskh
   face such as Noto Naskh Arabic (Arabic). All OFL-licensed and bundled.
-- **Shape** — soft "gift tag" cards (large radius, one notched corner),
-  generous whitespace, image-first masonry grid.
+- **Shape**: large radii, flat surfaces, hairline dividers, image-first
+  grid for wishlists, simple rows for people and dates.
 
 ### 2.2 Motion & "live" feel
 - **Hero transitions**: wish card → detail (iOS zoom navigation transition /
@@ -215,9 +218,6 @@ for it.
   with a satisfying haptic sequence. Unclaim unties it.
 - **Occasion countdown ring** on the home screen that fills as the date nears;
   on the day, a confetti burst in the person's hue.
-- **Ambient background**: slowly drifting mesh gradient in the current person's
-  hue behind headers (iOS `MeshGradient`, Compose `Canvas` shader on API 33+,
-  static fallback below). Respects Reduce Motion.
 - **Springs everywhere**, interruptible gestures, swipe actions, pull-to-refresh
   with a custom gift-box animation, skeleton shimmer while unfurling links.
 - **Live updates**: real-time listeners — a new wish slides into a partner's
