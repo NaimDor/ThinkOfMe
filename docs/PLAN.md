@@ -344,17 +344,17 @@ activity/{circleId}/items/{id}       # claim-free feed, written only by function
 
 ## 4. Milestones
 
-| # | Milestone | Outcome |
-|---|---|---|
-| M0 | Foundations | Repo layout, tokens + codegen, CI for all three parts, Firebase emulator setup, rules + rules tests for the surprise guarantee |
-| M1 | Design system | Both apps: colors, type, cards, buttons, chips, avatars w/ hue, countdown ring, ribbon-wrap animation, mesh background, haptics, component gallery screen |
-| M2 | Auth & onboarding | Apple / Google / email link, profile, birthday, first wishes |
-| M3 | Wishlist | CRUD, photos, link unfurl, share extension/target, visibility |
-| M4 | Circles | Create, invite link/QR, join, members, roles |
-| M5 | Claims | Wrap-it flow, claim-safe UI everywhere, buyer change alerts |
-| M6 | Occasions & push | Occasions UI, FCM, scheduled reminders, settings |
-| M7 | Polish & ads | Widgets, activity feed, empty states, accessibility pass, RTL, localization (en/he/ar/ru), AdMob native/banner slots, consent flow, Remote Config ad controls |
-| M8 | Launch prep | Account deletion/export, privacy policy, store assets, TestFlight/Play internal testing, make repo private |
+| # | Milestone | Outcome | Status |
+|---|---|---|---|
+| M0 | Foundations | Repo layout, tokens + codegen, CI for all three parts, Firebase emulator setup, rules + rules tests for the surprise guarantee | Done |
+| M1 | Design system | Both apps: colors, type, buttons, chips, avatars with hue, countdown ring, wrap-it moment, gift-box moment, haptics | Done |
+| M2 | Auth & onboarding | Google (both), Apple (iOS), profile, birthday | Done (email link and Apple on Android: later) |
+| M3 | Wishlist | CRUD, link unfurl, Android share target, visibility incl. "all my circles" | Done (photo upload and iOS share extension: next) |
+| M4 | Circles | Create, invite link, join, members | Done (QR, roles UI, remove member UI: next) |
+| M5 | Claims | Wrap-it flow, claim-safe UI everywhere, buyer change alerts | Done |
+| M6 | Occasions & push | Occasions UI, FCM, scheduled localized reminders, settings | Done |
+| M7 | Polish & ads | AdMob native/banner slots and consent flow done; widgets, activity feed UI, Remote Config ad controls, accessibility pass | In progress |
+| M8 | Launch prep | Account deletion done; data export, privacy policy, store assets, TestFlight/Play internal testing, make repo private | Not started |
 
 ---
 

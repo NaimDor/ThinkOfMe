@@ -37,7 +37,9 @@ jobs:
           if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > app/google-services.json; fi
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
-      - name: Unit and screenshot tests
+      - name: Unit tests
+        run: ./gradlew testDebugUnitTest -x :app:testDebugUnitTest
+      - name: Screenshot tests (renders every main screen)
         run: ./gradlew :app:recordRoborazziDebug
       - name: Upload APK
         uses: actions/upload-artifact@v5
