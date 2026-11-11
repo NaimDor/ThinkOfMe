@@ -174,7 +174,12 @@ fun PersonScreen(
 
 @Composable
 private fun NextLine(upcoming: UpcomingOccasion, isMe: Boolean) {
-    val title = occasionTitle(upcoming, if (isMe) upcoming.person?.id else null)
+    // The name is already the page title, so birthdays just say "Birthday".
+    val title = if (upcoming.occasion.kind == com.thinkofme.core.model.OccasionKind.BIRTHDAY) {
+        stringResource(R.string.kind_birthday_title)
+    } else {
+        occasionTitle(upcoming, if (isMe) upcoming.person?.id else null)
+    }
     Text("$title · ${relativeDays(upcoming.daysUntil)}", style = AppTheme.type.callout, color = AppTheme.colors.inkMuted)
 }
 
