@@ -1,0 +1,223 @@
+rules_version = '2';
+
+// ThinkOfMe security rules.
+//
+// Core invariant ("the surprise guarantee"): the owner of a wish can never
+// read a claim on that wish. Claims carry a server-maintained `viewerIds`
+// list that never contains the wish owner, and every claim read requires the
+// caller to be in `viewerIds` AND not be the owner.
+//
+// Visibility is denormalized: Cloud Functions compute `viewerIds` for wishes,
+// occasions and claims from circle memberships. Clients can never write
+// `viewerIds`, `memberIds`, invites, connections or activity.
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------- helpers ----------
+    function signedIn() {
+      return request.auth != null;
+    }
+    function uid() {
+      return request.auth.uid;
+    }
+    function isSelf(userId) {
+      return signedIn() && uid() == userId;
+    }
+    function incoming() {
+      return request.resource.data;
+    }
+    function existing() {
+      return resource.data;
+    }
+    function unchanged(keys) {
+      return !incoming().diff(existing()).affectedKeys().hasAny(keys);
+    }
+    function onlyChanges(keys) {
+      return incoming().diff(existing()).affectedKeys().hasOnly(keys);
+    }
+    function isConnection(userId) {
+      return signedIn()
+        && exists(/databases/$(database)/documents/connections/$(userId))
+        && uid() in get(/databases/$(database)/documents/connections/$(userId)).data.userIds;
+    }
+    function circle(circleId) {
+      return get(/databases/$(database)/documents/circles/$(circleId)).data;
+    }
+    function isCircleMember(circleId) {
+      return signedIn() && uid() in circle(circleId).memberIds;
+    }
+    function validString(v, min, max) {
+      return v is string && v.size() >= min && v.size() <= max;
+    }
+    function optionalString(data, key, max) {
+      return !(key in data) || data[key] == null || validString(data[key], 0, max);
+    }
+    function validCircleIdList(v) {
+      return v is list && v.size() <= 20;
+    }
+
+    // ---------- users ----------
+    match /users/{userId} {
+      allow read: if isSelf(userId) || isConnection(userId);
+      allow create: if isSelf(userId)
+        && incoming().keys().hasOnly(['displayName', 'photoUrl', 'hue', 'aboutMe', 'locale', 'createdAt', 'updatedAt'])
+        && validString(incoming().displayName, 1, 60);
+      allow update: if isSelf(userId)
+        && onlyChanges(['displayName', 'photoUrl', 'hue', 'aboutMe', 'locale', 'updatedAt'])
+        && validString(incoming().displayName, 1, 60);
+      allow delete: if false; // account deletion goes through a Cloud Function
+
+      match /private/{docId} {
+        allow read, write: if isSelf(userId);
+      }
+      match /devices/{deviceId} {
+        allow read, write: if isSelf(userId);
+      }
+    }
+
+    // Server-maintained list of everyone who shares at least one circle with
+    // the user. Readable by the user only.
+    match /connections/{userId} {
+      allow read: if isSelf(userId);
+      allow write: if false;
+    }
+
+    // ---------- circles ----------
+    match /circles/{circleId} {
+      allow read: if signedIn() && uid() in existing().memberIds;
+
+      // Create a circle containing only yourself; others join via invites.
+      allow create: if signedIn()
+        && incoming().ownerId == uid()
+        && incoming().memberIds == [uid()]
+        && incoming().adminIds == [uid()]
+        && incoming().kind in ['pair', 'group']
+        && validString(incoming().name, 1, 60)
+        && incoming().keys().hasOnly(['name', 'kind', 'ownerId', 'memberIds', 'adminIds', 'emoji', 'hue', 'settings', 'createdAt', 'updatedAt']);
+
+      // Admins can rename / restyle; membership changes go through functions.
+      allow update: if signedIn()
+        && uid() in existing().adminIds
+        && onlyChanges(['name', 'emoji', 'hue', 'settings', 'updatedAt'])
+        && validString(incoming().name, 1, 60);
+
+      allow delete: if signedIn() && uid() == existing().ownerId;
+    }
+
+    // Invites are created / redeemed only through callable functions.
+    match /invites/{code} {
+      allow read, write: if false;
+    }
+
+    // ---------- wishes ----------
+    match /wishes/{wishId} {
+      function canSeeWish() {
+        return signedIn() && (uid() == existing().ownerId || uid() in existing().viewerIds);
+      }
+      function validWish(d) {
+        return validString(d.title, 1, 140)
+          && optionalString(d, 'note', 1000)
+          && optionalString(d, 'store', 120)
+          && (!('urls' in d) || (d.urls is list && d.urls.size() <= 5))
+          && (!('imageUrls' in d) || (d.imageUrls is list && d.imageUrls.size() <= 8))
+          && d.kind in ['product', 'idea']
+          && d.priority is int && d.priority >= 1 && d.priority <= 3
+          && d.quantity is int && d.quantity >= 1 && d.quantity <= 99
+          && d.status in ['active', 'received', 'archived']
+          && validCircleIdList(d.visibleCircleIds);
+      }
+
+      allow read: if canSeeWish();
+
+      allow create: if signedIn()
+        && incoming().ownerId == uid()
+        && incoming().viewerIds == []
+        && validWish(incoming())
+        && incoming().keys().hasOnly(['ownerId', 'title', 'note', 'urls', 'imageUrls', 'price', 'store',
+            'kind', 'priority', 'quantity', 'status', 'visibleCircleIds', 'viewerIds', 'sortKey',
+            'createdAt', 'updatedAt']);
+
+      allow update: if signedIn()
+        && uid() == existing().ownerId
+        && unchanged(['ownerId', 'viewerIds'])
+        && validWish(incoming());
+
+      allow delete: if signedIn() && uid() == existing().ownerId;
+    }
+
+    // ---------- claims (the secret part) ----------
+    match /claims/{claimId} {
+      function wish(wishId) {
+        return get(/databases/$(database)/documents/wishes/$(wishId)).data;
+      }
+      // Queries must be provably safe: list claims either per person
+      // (viewerIds array-contains me AND wishOwnerId == them) or your own
+      // (claimerId == me). A claimer is never the wish owner (see create).
+      function readableClaim() {
+        return signedIn() && (
+          (uid() in existing().viewerIds && uid() != existing().wishOwnerId)
+          || uid() == existing().claimerId
+        );
+      }
+
+      allow read: if readableClaim();
+
+      allow create: if signedIn()
+        && claimId == incoming().wishId + '_' + uid()
+        && incoming().claimerId == uid()
+        && wish(incoming().wishId).ownerId != uid()
+        && uid() in wish(incoming().wishId).viewerIds
+        && incoming().wishOwnerId == wish(incoming().wishId).ownerId
+        && incoming().viewerIds == wish(incoming().wishId).viewerIds
+        && !(incoming().wishOwnerId in incoming().viewerIds)
+        && incoming().status in ['reserved', 'purchased']
+        && incoming().quantity is int && incoming().quantity >= 1 && incoming().quantity <= 99
+        && incoming().keys().hasOnly(['wishId', 'wishOwnerId', 'claimerId', 'claimerName', 'viewerIds',
+            'status', 'quantity', 'note', 'createdAt', 'updatedAt']);
+
+      allow update: if signedIn()
+        && uid() == existing().claimerId
+        && onlyChanges(['status', 'quantity', 'note', 'updatedAt'])
+        && incoming().status in ['reserved', 'purchased'];
+
+      allow delete: if signedIn() && uid() == existing().claimerId;
+    }
+
+    // ---------- occasions ----------
+    match /occasions/{occasionId} {
+      function validOccasion(d) {
+        return d.kind in ['birthday', 'anniversary', 'holiday', 'custom']
+          && validString(d.title, 1, 80)
+          && d.month is int && d.month >= 1 && d.month <= 12
+          && d.day is int && d.day >= 1 && d.day <= 31
+          && d.recurrence in ['yearly', 'once']
+          && validCircleIdList(d.visibleCircleIds);
+      }
+
+      allow read: if signedIn() && (uid() == existing().ownerId || uid() in existing().viewerIds);
+
+      allow create: if signedIn()
+        && incoming().ownerId == uid()
+        && incoming().viewerIds == []
+        && validOccasion(incoming());
+
+      allow update: if signedIn()
+        && uid() == existing().ownerId
+        && unchanged(['ownerId', 'viewerIds'])
+        && validOccasion(incoming());
+
+      allow delete: if signedIn() && uid() == existing().ownerId;
+    }
+
+    // ---------- activity (claim-free, server-written) ----------
+    match /circles/{circleId}/activity/{itemId} {
+      allow read: if isCircleMember(circleId);
+      allow write: if false;
+    }
+
+    // ---------- reminder bookkeeping (server only) ----------
+    match /reminderLog/{id} {
+      allow read, write: if false;
+    }
+  }
+}

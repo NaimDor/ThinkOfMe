@@ -1,0 +1,28 @@
+rules_version = '2';
+
+// Wish photos and avatars. Files live under the owner's folder; anyone signed
+// in can read them by URL (download URLs carry an unguessable token), only the
+// owner can write, and only reasonably sized images are accepted.
+service firebase.storage {
+  match /b/{bucket}/o {
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+    function isImage() {
+      return request.resource.size < 10 * 1024 * 1024
+        && request.resource.contentType.matches('image/.*');
+    }
+
+    match /users/{userId}/avatar/{file} {
+      allow read: if request.auth != null;
+      allow write: if isOwner(userId) && isImage();
+      allow delete: if isOwner(userId);
+    }
+
+    match /users/{userId}/wishes/{wishId}/{file} {
+      allow read: if request.auth != null;
+      allow create, update: if isOwner(userId) && isImage();
+      allow delete: if isOwner(userId);
+    }
+  }
+}

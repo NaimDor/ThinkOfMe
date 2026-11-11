@@ -1,0 +1,63 @@
+{
+  "indexes": [
+    {
+      "collectionGroup": "wishes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "sortKey", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "wishes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "viewerIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "updatedAt", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "wishes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "viewerIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "ownerId", "order": "ASCENDING" },
+        { "fieldPath": "sortKey", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "wishes",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "visibleCircleIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "ownerId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "claims",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "viewerIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "wishOwnerId", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "occasions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "viewerIds", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "month", "order": "ASCENDING" },
+        { "fieldPath": "day", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "occasions",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "month", "order": "ASCENDING" },
+        { "fieldPath": "day", "order": "ASCENDING" }
+      ]
+    }
+  ],
+  "fieldOverrides": []
+}
