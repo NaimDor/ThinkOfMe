@@ -38,6 +38,9 @@ interface ProfileRepository {
 
     suspend fun saveProfile(displayName: String, aboutMe: AboutMe)
 
+    fun remindersEnabled(): Flow<Boolean>
+    suspend fun setRemindersEnabled(enabled: Boolean)
+
     /** Saves time zone and locale so reminders arrive at a sensible local hour. */
     suspend fun saveDeviceSettings(timeZone: String, locale: String, pushToken: String?)
 }

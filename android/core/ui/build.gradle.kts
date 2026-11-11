@@ -10,7 +10,7 @@ android {
 dependencies {
     implementation(project(":core:model"))
     implementation(project(":core:designsystem"))
-    implementation(libs.coil.compose)
+    api(libs.coil.compose)
     implementation(libs.coil.network)
     implementation(libs.play.services.ads)
 }

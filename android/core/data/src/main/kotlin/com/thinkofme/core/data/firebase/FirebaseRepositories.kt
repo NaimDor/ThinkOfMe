@@ -233,6 +233,16 @@ class FirebaseProfileRepository @Inject constructor(private val session: Firebas
         }
     }
 
+    override fun remindersEnabled(): Flow<Boolean> = session.whenSignedIn(true) { uid ->
+        users.document(uid).collection("private").document("settings").snapshots().map { it.getBoolean("notifications.reminders") != false }
+    }
+
+    override suspend fun setRemindersEnabled(enabled: Boolean) {
+        val uid = session.requireUid()
+        users.document(uid).collection("private").document("settings")
+            .set(mapOf("notifications" to mapOf("reminders" to enabled)), SetOptions.merge()).await()
+    }
+
     override suspend fun saveDeviceSettings(timeZone: String, locale: String, pushToken: String?) {
         val uid = session.uid ?: return
         users.document(uid).collection("private").document("settings")

@@ -20,6 +20,11 @@ describe("visibility", () => {
     expect(computeViewerIds("maya", ["strangers", "gone"], circles)).toEqual([]);
   });
 
+  it("shares with every circle of the owner for the \"*\" entry", () => {
+    const owned = new Map([...circles].filter(([, c]) => c.memberIds.includes("maya")));
+    expect(computeViewerIds("maya", ["*"], owned)).toEqual(["dana", "noa"]);
+  });
+
   it("computes connections across circles", () => {
     expect(computeConnections("dana", [...circles.values()])).toEqual(["maya", "noa"]);
   });

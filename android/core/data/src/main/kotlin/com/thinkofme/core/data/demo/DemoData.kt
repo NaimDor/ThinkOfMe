@@ -9,6 +9,7 @@ import com.thinkofme.core.data.LinkPreview
 import com.thinkofme.core.data.OccasionRepository
 import com.thinkofme.core.data.ProfileRepository
 import com.thinkofme.core.data.WishRepository
+import com.thinkofme.core.model.ALL_CIRCLES
 import com.thinkofme.core.model.AboutMe
 import com.thinkofme.core.model.Circle
 import com.thinkofme.core.model.CircleKind
@@ -50,6 +51,7 @@ class DemoStore @Inject constructor() {
     private fun daysAgo(days: Int) = now - days * 86_400_000L
 
     val session = MutableStateFlow<SessionUser?>(null)
+    val reminders = MutableStateFlow(true)
 
     val people = MutableStateFlow(
         mapOf(
@@ -106,7 +108,7 @@ class DemoStore @Inject constructor() {
     )
 
     fun viewersOf(ownerId: String, circleIds: List<String>): Set<String> =
-        circles.value.filter { it.id in circleIds && ownerId in it.memberIds }.flatMap { it.memberIds }.toSet() - ownerId
+        circles.value.filter { (ALL_CIRCLES in circleIds || it.id in circleIds) && ownerId in it.memberIds }.flatMap { it.memberIds }.toSet() - ownerId
 }
 
 class DemoAuthRepository @Inject constructor(private val store: DemoStore) : AuthRepository {
@@ -133,6 +135,11 @@ class DemoProfileRepository @Inject constructor(private val store: DemoStore) : 
 
     override suspend fun saveProfile(displayName: String, aboutMe: AboutMe) {
         store.people.update { it + (store.me to it.getValue(store.me).copy(displayName = displayName, aboutMe = aboutMe)) }
+    }
+
+    override fun remindersEnabled(): Flow<Boolean> = store.reminders
+    override suspend fun setRemindersEnabled(enabled: Boolean) {
+        store.reminders.value = enabled
     }
 
     override suspend fun saveDeviceSettings(timeZone: String, locale: String, pushToken: String?) = Unit

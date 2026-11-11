@@ -3,6 +3,9 @@ package com.thinkofme.core.model
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 
+/** Visibility entry meaning "every circle I am in, now and in the future". */
+const val ALL_CIRCLES = "*"
+
 /** The signed-in person. */
 data class SessionUser(
     val id: String,

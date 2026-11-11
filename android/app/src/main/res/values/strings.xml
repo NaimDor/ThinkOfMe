@@ -1,4 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name" translatable="false">ThinkOfMe</string>
+    <string name="channel_reminders">Reminders</string>
+    <string name="channel_gift_updates">Gift updates</string>
 </resources>

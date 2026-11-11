@@ -4,6 +4,9 @@
  * as `viewerIds` so security rules and queries stay simple.
  */
 
+/** Special visibility entry: every circle the owner belongs to, now and in the future. */
+export const ALL_CIRCLES = "*";
+
 export interface CircleMembership {
   readonly id: string;
   readonly memberIds: readonly string[];
@@ -20,7 +23,10 @@ export function computeViewerIds(
   circles: ReadonlyMap<string, CircleMembership | undefined>,
 ): string[] {
   const viewers = new Set<string>();
-  for (const circleId of visibleCircleIds) {
+  const ids = visibleCircleIds.includes(ALL_CIRCLES)
+    ? [...circles.keys()]
+    : visibleCircleIds;
+  for (const circleId of ids) {
     const circle = circles.get(circleId);
     if (!circle || !circle.memberIds.includes(ownerId)) continue;
     for (const memberId of circle.memberIds) {

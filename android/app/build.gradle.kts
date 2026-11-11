@@ -5,6 +5,7 @@ plugins {
     id("thinkofme.android.compose")
     id("thinkofme.hilt")
     alias(libs.plugins.kotlin.serialization)
+    alias(libs.plugins.roborazzi)
 }
 
 // Firebase is optional for local builds: without google-services.json the app
@@ -72,6 +73,10 @@ android {
         generateLocaleConfig = true
     }
 
+    testOptions {
+        unitTests.isIncludeAndroidResources = true
+    }
+
     packaging {
         resources.excludes += "/META-INF/{AL2.0,LGPL2.1}"
     }
@@ -103,4 +108,11 @@ dependencies {
     implementation(libs.firebase.messaging)
     implementation(libs.play.services.ads)
     implementation(libs.ump)
+
+    // Screenshot tests render real screens on the JVM (no emulator needed).
+    testImplementation(libs.robolectric)
+    testImplementation(libs.roborazzi)
+    testImplementation(libs.roborazzi.compose)
+    testImplementation(libs.compose.ui.test.junit4)
+    debugImplementation(libs.compose.ui.test.manifest)
 }

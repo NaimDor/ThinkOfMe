@@ -57,13 +57,12 @@
             </intent-filter>
         </activity>
 
-        <!-- push service added with the push module -->
-        <!--service
+        <service
             android:name=".push.PushService"
             android:exported="false">
             <intent-filter>
                 <action android:name="com.google.firebase.MESSAGING_EVENT" />
             </intent-filter>
-        </service-->
+        </service>
     </application>
 </manifest>

@@ -1,0 +1,164 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Tabs -->
+    <string name="tab_home">Home</string>
+    <string name="tab_my_list">My list</string>
+    <string name="tab_circles">Circles</string>
+    <string name="tab_dates">Dates</string>
+    <string name="action_add_wish">Add a wish</string>
+
+    <!-- Common -->
+    <string name="action_back">Back</string>
+    <string name="action_share">Share</string>
+    <string name="action_save">Save</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_edit">Edit</string>
+    <string name="action_done">Done</string>
+    <string name="action_see_all">See all</string>
+    <string name="action_view_list">View list</string>
+    <string name="action_retry">Try again</string>
+    <string name="error_generic">Something went wrong. Please try again.</string>
+    <string name="error_offline">You\'re offline. Changes will sync when you\'re back.</string>
+    <string name="ad_label">Ad</string>
+
+    <!-- Home -->
+    <string name="greeting_morning">Good morning</string>
+    <string name="greeting_afternoon">Good afternoon</string>
+    <string name="greeting_evening">Good evening</string>
+    <string name="next_up">Next up</string>
+    <string name="your_people">Your people</string>
+    <string name="days_label">days</string>
+    <string name="today">Today</string>
+    <string name="tomorrow">Tomorrow</string>
+    <plurals name="days_to_go">
+        <item quantity="one">%d day to go</item>
+        <item quantity="other">%d days to go</item>
+    </plurals>
+    <plurals name="new_wishes">
+        <item quantity="one">%d new wish</item>
+        <item quantity="other">%d new wishes</item>
+    </plurals>
+    <plurals name="open_of_total">
+        <item quantity="one">%1$d of %2$d wish still open</item>
+        <item quantity="other">%1$d of %2$d wishes still open</item>
+    </plurals>
+    <string name="occasion_possessive">%1$s\'s %2$s</string>
+    <string name="home_empty_title">Your people will show up here</string>
+    <string name="home_empty_body">Create a circle and invite your partner, family or friends.</string>
+    <string name="home_empty_action">Create a circle</string>
+
+    <!-- Occasion kinds -->
+    <string name="kind_birthday">birthday</string>
+    <string name="kind_anniversary">anniversary</string>
+    <string name="kind_holiday">holiday</string>
+    <string name="kind_custom">special day</string>
+    <string name="kind_birthday_title">Birthday</string>
+    <string name="kind_anniversary_title">Anniversary</string>
+    <string name="kind_holiday_title">Holiday</string>
+    <string name="kind_custom_title">Other</string>
+    <string name="turns_age">turns %d</string>
+
+    <!-- Wishes -->
+    <string name="wishes_of">%s\'s wishes</string>
+    <string name="my_list_title">My list</string>
+    <string name="my_list_empty_title">What would make you smile?</string>
+    <string name="my_list_empty_body">Add things you\'d love. Paste a link from any store, or share it to ThinkOfMe.</string>
+    <string name="person_empty_title">No wishes yet</string>
+    <string name="person_empty_body">%s hasn\'t added anything. You\'ll get a nudge when they do.</string>
+    <string name="wrapped">Wrapped</string>
+    <string name="idea">Idea</string>
+    <string name="priority_nice">Nice to have</string>
+    <string name="priority_love">Would love</string>
+    <string name="priority_dream">Dream gift</string>
+    <string name="wish_of_person">%1$s · %2$s</string>
+    <string name="claim_action">I\'m getting this</string>
+    <string name="claim_undo">Wrapped · Undo</string>
+    <string name="claim_hint_open">Whatever you choose stays hidden from %s.</string>
+    <string name="claim_hint_mine">You\'re getting this. Others see it\'s taken. %s never will.</string>
+    <string name="claim_hint_other">%1$s is getting this. %2$s doesn\'t know.</string>
+    <string name="open_in_store">Open in store</string>
+    <string name="mark_received">I got this</string>
+    <string name="received">Received</string>
+    <string name="delete_wish_title">Delete this wish?</string>
+    <string name="delete_wish_body">People you shared it with won\'t see it anymore.</string>
+    <string name="about_me">About me</string>
+    <string name="about_size_clothing">Clothing</string>
+    <string name="about_size_shoes">Shoes</string>
+    <string name="about_size_ring">Ring</string>
+    <string name="about_colors">Favorite colors</string>
+    <string name="about_allergies">Allergies</string>
+    <string name="about_dont_buy">Please don\'t buy</string>
+
+    <!-- Edit wish -->
+    <string name="new_wish">New wish</string>
+    <string name="edit_wish">Edit wish</string>
+    <string name="field_link">Link</string>
+    <string name="field_link_hint">Paste a product link</string>
+    <string name="field_title">What is it?</string>
+    <string name="field_price">Price</string>
+    <string name="field_store">Store</string>
+    <string name="field_note">Note for your people</string>
+    <string name="field_note_hint">Size, color, why you love it…</string>
+    <string name="field_kind_product">Product</string>
+    <string name="field_kind_idea">Idea or experience</string>
+    <string name="fetching_link">Looking up the link…</string>
+    <string name="link_failed">Couldn\'t read that page. Fill in the details yourself.</string>
+    <string name="visible_all">All my circles</string>
+    <string name="visible_to">Who can see it</string>
+    <string name="visible_to_none">Only you, for now. Pick at least one circle to share it.</string>
+    <string name="how_much">How much do you want it?</string>
+
+    <!-- Circles -->
+    <string name="circles_title">Circles</string>
+    <string name="circle_pair">Just the two of us</string>
+    <string name="circle_group">Group</string>
+    <plurals name="members">
+        <item quantity="one">%d member</item>
+        <item quantity="other">%d members</item>
+    </plurals>
+    <string name="create_circle">New circle</string>
+    <string name="circle_name">Name</string>
+    <string name="circle_name_hint">e.g. Family, Maya &amp; me</string>
+    <string name="invite">Invite</string>
+    <string name="invite_message">Join me on ThinkOfMe, so we always know what to get each other: %s</string>
+    <string name="invite_code">Invite code: %s</string>
+    <string name="join_with_code">Join with a code</string>
+    <string name="join">Join</string>
+    <string name="join_title">Join %s?</string>
+    <string name="join_body">%1$s invited you. %2$s</string>
+    <string name="leave_circle">Leave circle</string>
+    <string name="circles_empty_title">Gifting is better together</string>
+    <string name="circles_empty_body">A circle is who sees your wishes: your partner, your family, your friends.</string>
+
+    <!-- Dates -->
+    <string name="dates_title">Dates</string>
+    <string name="add_date">Add a date</string>
+    <string name="date_whose">Whose day is it?</string>
+    <string name="date_title">Title</string>
+    <string name="date_pick">Date</string>
+    <string name="date_yearly">Every year</string>
+    <string name="dates_empty_title">No dates yet</string>
+    <string name="dates_empty_body">Add birthdays and anniversaries. We\'ll remind everyone in time.</string>
+    <string name="me">Me</string>
+
+    <!-- Account -->
+    <string name="welcome_title">Never guess a gift again</string>
+    <string name="welcome_body">Keep a wishlist for the people who love you, and quietly see what they\'d love too.</string>
+    <string name="continue_google">Continue with Google</string>
+    <string name="explore_demo">Explore with sample data</string>
+    <string name="demo_banner">Demo mode: sample data on this device only</string>
+    <string name="onboarding_name">What should we call you?</string>
+    <string name="onboarding_birthday">When\'s your birthday?</string>
+    <string name="onboarding_birthday_hint">So your people get a reminder. Year is optional.</string>
+    <string name="onboarding_continue">Continue</string>
+    <string name="settings_title">Settings</string>
+    <string name="settings_profile">Profile</string>
+    <string name="settings_name">Your name</string>
+    <string name="settings_notifications">Reminders</string>
+    <string name="settings_notifications_body">Before your people\'s big days, and before your own.</string>
+    <string name="settings_privacy_ads">Ad privacy choices</string>
+    <string name="settings_sign_out">Sign out</string>
+    <string name="settings_delete_account">Delete account</string>
+    <string name="delete_account_body">This permanently deletes your wishes, dates and circles membership. It can\'t be undone.</string>
+</resources>

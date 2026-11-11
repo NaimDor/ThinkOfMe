@@ -1,0 +1,159 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tab_home">בית</string>
+    <string name="tab_my_list">הרשימה שלי</string>
+    <string name="tab_circles">מעגלים</string>
+    <string name="tab_dates">תאריכים</string>
+    <string name="action_add_wish">הוספת משאלה</string>
+
+    <string name="action_back">חזרה</string>
+    <string name="action_share">שיתוף</string>
+    <string name="action_save">שמירה</string>
+    <string name="action_cancel">ביטול</string>
+    <string name="action_delete">מחיקה</string>
+    <string name="action_edit">עריכה</string>
+    <string name="action_done">סיום</string>
+    <string name="action_see_all">הכול</string>
+    <string name="action_view_list">לרשימה</string>
+    <string name="action_retry">נסו שוב</string>
+    <string name="error_generic">משהו השתבש. נסו שוב.</string>
+    <string name="error_offline">אין חיבור. השינויים יסונכרנו כשתחזרו לרשת.</string>
+    <string name="ad_label">מודעה</string>
+
+    <string name="greeting_morning">בוקר טוב</string>
+    <string name="greeting_afternoon">צהריים טובים</string>
+    <string name="greeting_evening">ערב טוב</string>
+    <string name="next_up">הבא בתור</string>
+    <string name="your_people">האנשים שלך</string>
+    <string name="days_label">ימים</string>
+    <string name="today">היום</string>
+    <string name="tomorrow">מחר</string>
+    <plurals name="days_to_go">
+        <item quantity="one">נשאר יום אחד</item>
+        <item quantity="two">נשארו יומיים</item>
+        <item quantity="other">נשארו %d ימים</item>
+    </plurals>
+    <plurals name="new_wishes">
+        <item quantity="one">משאלה חדשה אחת</item>
+        <item quantity="two">%d משאלות חדשות</item>
+        <item quantity="other">%d משאלות חדשות</item>
+    </plurals>
+    <plurals name="open_of_total">
+        <item quantity="one">%1$d מתוך %2$d משאלות עדיין פנויה</item>
+        <item quantity="two">%1$d מתוך %2$d משאלות עדיין פנויות</item>
+        <item quantity="other">%1$d מתוך %2$d משאלות עדיין פנויות</item>
+    </plurals>
+    <string name="occasion_possessive">%2$s של %1$s</string>
+    <string name="home_empty_title">האנשים שלך יופיעו כאן</string>
+    <string name="home_empty_body">צרו מעגל והזמינו את בן או בת הזוג, המשפחה או החברים.</string>
+    <string name="home_empty_action">יצירת מעגל</string>
+
+    <string name="kind_birthday">יום ההולדת</string>
+    <string name="kind_anniversary">יום הנישואין</string>
+    <string name="kind_holiday">החג</string>
+    <string name="kind_custom">היום המיוחד</string>
+    <string name="kind_birthday_title">יום הולדת</string>
+    <string name="kind_anniversary_title">יום נישואין</string>
+    <string name="kind_holiday_title">חג</string>
+    <string name="kind_custom_title">אחר</string>
+    <string name="turns_age">בן/בת %d</string>
+
+    <string name="wishes_of">המשאלות של %s</string>
+    <string name="my_list_title">הרשימה שלי</string>
+    <string name="my_list_empty_title">מה יעשה לך חיוך?</string>
+    <string name="my_list_empty_body">הוסיפו דברים שהייתם שמחים לקבל. הדביקו קישור מכל חנות, או שתפו אותו ל־ThinkOfMe.</string>
+    <string name="person_empty_title">עדיין אין משאלות</string>
+    <string name="person_empty_body">%s עוד לא הוסיפו כלום. נעדכן אתכם כשזה יקרה.</string>
+    <string name="wrapped">נעטף</string>
+    <string name="idea">רעיון</string>
+    <string name="priority_nice">נחמד שיהיה</string>
+    <string name="priority_love">ממש רוצה</string>
+    <string name="priority_dream">מתנת חלומות</string>
+    <string name="wish_of_person">%1$s · %2$s</string>
+    <string name="claim_action">אני קונה את זה</string>
+    <string name="claim_undo">נעטף · ביטול</string>
+    <string name="claim_hint_open">מה שתבחרו יישאר סוד מ%s.</string>
+    <string name="claim_hint_mine">אתם קונים את זה. האחרים יראו שזה תפוס. %s לעולם לא.</string>
+    <string name="claim_hint_other">%1$s קונים את זה. %2$s לא יודעים.</string>
+    <string name="open_in_store">פתיחה בחנות</string>
+    <string name="mark_received">קיבלתי</string>
+    <string name="received">התקבל</string>
+    <string name="delete_wish_title">למחוק את המשאלה?</string>
+    <string name="delete_wish_body">מי ששיתפתם איתם לא יראו אותה יותר.</string>
+    <string name="about_me">עליי</string>
+    <string name="about_size_clothing">בגדים</string>
+    <string name="about_size_shoes">נעליים</string>
+    <string name="about_size_ring">טבעת</string>
+    <string name="about_colors">צבעים אהובים</string>
+    <string name="about_allergies">אלרגיות</string>
+    <string name="about_dont_buy">בבקשה לא לקנות</string>
+
+    <string name="new_wish">משאלה חדשה</string>
+    <string name="edit_wish">עריכת משאלה</string>
+    <string name="field_link">קישור</string>
+    <string name="field_link_hint">הדביקו קישור למוצר</string>
+    <string name="field_title">מה זה?</string>
+    <string name="field_price">מחיר</string>
+    <string name="field_store">חנות</string>
+    <string name="field_note">הערה לאנשים שלך</string>
+    <string name="field_note_hint">מידה, צבע, למה זה שווה…</string>
+    <string name="field_kind_product">מוצר</string>
+    <string name="field_kind_idea">רעיון או חוויה</string>
+    <string name="fetching_link">בודקים את הקישור…</string>
+    <string name="link_failed">לא הצלחנו לקרוא את הדף. אפשר למלא את הפרטים ידנית.</string>
+    <string name="visible_all">כל המעגלים שלי</string>
+    <string name="visible_to">מי יכול לראות</string>
+    <string name="visible_to_none">כרגע רק אתם. בחרו לפחות מעגל אחד כדי לשתף.</string>
+    <string name="how_much">כמה אתם רוצים את זה?</string>
+
+    <string name="circles_title">מעגלים</string>
+    <string name="circle_pair">רק שנינו</string>
+    <string name="circle_group">קבוצה</string>
+    <plurals name="members">
+        <item quantity="one">חבר אחד</item>
+        <item quantity="two">%d חברים</item>
+        <item quantity="other">%d חברים</item>
+    </plurals>
+    <string name="create_circle">מעגל חדש</string>
+    <string name="circle_name">שם</string>
+    <string name="circle_name_hint">למשל: משפחה, מאיה ואני</string>
+    <string name="invite">הזמנה</string>
+    <string name="invite_message">הצטרפו אליי ל־ThinkOfMe, כדי שתמיד נדע מה לקנות אחד לשני: %s</string>
+    <string name="invite_code">קוד הזמנה: %s</string>
+    <string name="join_with_code">הצטרפות עם קוד</string>
+    <string name="join">הצטרפות</string>
+    <string name="join_title">להצטרף ל%s?</string>
+    <string name="join_body">%1$s הזמינו אותך. %2$s</string>
+    <string name="leave_circle">יציאה מהמעגל</string>
+    <string name="circles_empty_title">מתנות זה יותר כיף ביחד</string>
+    <string name="circles_empty_body">מעגל הוא מי שרואה את המשאלות שלך: בן או בת הזוג, המשפחה, החברים.</string>
+
+    <string name="dates_title">תאריכים</string>
+    <string name="add_date">הוספת תאריך</string>
+    <string name="date_whose">של מי היום הזה?</string>
+    <string name="date_title">כותרת</string>
+    <string name="date_pick">תאריך</string>
+    <string name="date_yearly">כל שנה</string>
+    <string name="dates_empty_title">עדיין אין תאריכים</string>
+    <string name="dates_empty_body">הוסיפו ימי הולדת וימי נישואין. נזכיר לכולם בזמן.</string>
+    <string name="me">אני</string>
+
+    <string name="welcome_title">לא לנחש מתנות יותר</string>
+    <string name="welcome_body">רשימת משאלות לאנשים שאוהבים אתכם, ומבט שקט על מה שהם היו שמחים לקבל.</string>
+    <string name="continue_google">המשך עם Google</string>
+    <string name="explore_demo">לסיור עם נתוני דוגמה</string>
+    <string name="demo_banner">מצב הדגמה: נתוני דוגמה במכשיר הזה בלבד</string>
+    <string name="onboarding_name">איך לקרוא לך?</string>
+    <string name="onboarding_birthday">מתי יום ההולדת שלך?</string>
+    <string name="onboarding_birthday_hint">כדי שהאנשים שלך יקבלו תזכורת. השנה לא חובה.</string>
+    <string name="onboarding_continue">המשך</string>
+    <string name="settings_title">הגדרות</string>
+    <string name="settings_profile">פרופיל</string>
+    <string name="settings_name">השם שלך</string>
+    <string name="settings_notifications">תזכורות</string>
+    <string name="settings_notifications_body">לפני הימים הגדולים של האנשים שלך, ולפני שלך.</string>
+    <string name="settings_privacy_ads">פרטיות ומודעות</string>
+    <string name="settings_sign_out">התנתקות</string>
+    <string name="settings_delete_account">מחיקת החשבון</string>
+    <string name="delete_account_body">הפעולה מוחקת לצמיתות את המשאלות, התאריכים והחברות במעגלים. אי אפשר לבטל אותה.</string>
+</resources>

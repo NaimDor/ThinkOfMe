@@ -1,0 +1,163 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="tab_home">Главная</string>
+    <string name="tab_my_list">Мой список</string>
+    <string name="tab_circles">Круги</string>
+    <string name="tab_dates">Даты</string>
+    <string name="action_add_wish">Добавить желание</string>
+
+    <string name="action_back">Назад</string>
+    <string name="action_share">Поделиться</string>
+    <string name="action_save">Сохранить</string>
+    <string name="action_cancel">Отмена</string>
+    <string name="action_delete">Удалить</string>
+    <string name="action_edit">Изменить</string>
+    <string name="action_done">Готово</string>
+    <string name="action_see_all">Все</string>
+    <string name="action_view_list">Список</string>
+    <string name="action_retry">Повторить</string>
+    <string name="error_generic">Что-то пошло не так. Попробуйте ещё раз.</string>
+    <string name="error_offline">Нет сети. Изменения синхронизируются, когда связь появится.</string>
+    <string name="ad_label">Реклама</string>
+
+    <string name="greeting_morning">Доброе утро</string>
+    <string name="greeting_afternoon">Добрый день</string>
+    <string name="greeting_evening">Добрый вечер</string>
+    <string name="next_up">Скоро</string>
+    <string name="your_people">Ваши близкие</string>
+    <string name="days_label">дн.</string>
+    <string name="today">Сегодня</string>
+    <string name="tomorrow">Завтра</string>
+    <plurals name="days_to_go">
+        <item quantity="one">остался %d день</item>
+        <item quantity="few">осталось %d дня</item>
+        <item quantity="many">осталось %d дней</item>
+        <item quantity="other">осталось %d дня</item>
+    </plurals>
+    <plurals name="new_wishes">
+        <item quantity="one">%d новое желание</item>
+        <item quantity="few">%d новых желания</item>
+        <item quantity="many">%d новых желаний</item>
+        <item quantity="other">%d новых желания</item>
+    </plurals>
+    <plurals name="open_of_total">
+        <item quantity="one">свободно %1$d из %2$d</item>
+        <item quantity="few">свободно %1$d из %2$d</item>
+        <item quantity="many">свободно %1$d из %2$d</item>
+        <item quantity="other">свободно %1$d из %2$d</item>
+    </plurals>
+    <string name="occasion_possessive">%2$s: %1$s</string>
+    <string name="home_empty_title">Здесь появятся ваши близкие</string>
+    <string name="home_empty_body">Создайте круг и пригласите партнёра, семью или друзей.</string>
+    <string name="home_empty_action">Создать круг</string>
+
+    <string name="kind_birthday">День рождения</string>
+    <string name="kind_anniversary">Годовщина</string>
+    <string name="kind_holiday">Праздник</string>
+    <string name="kind_custom">Особый день</string>
+    <string name="kind_birthday_title">День рождения</string>
+    <string name="kind_anniversary_title">Годовщина</string>
+    <string name="kind_holiday_title">Праздник</string>
+    <string name="kind_custom_title">Другое</string>
+    <string name="turns_age">исполняется %d</string>
+
+    <string name="wishes_of">Желания: %s</string>
+    <string name="my_list_title">Мой список</string>
+    <string name="my_list_empty_title">Что вас порадует?</string>
+    <string name="my_list_empty_body">Добавляйте то, что хотели бы получить. Вставьте ссылку из любого магазина или поделитесь ею с ThinkOfMe.</string>
+    <string name="person_empty_title">Пока нет желаний</string>
+    <string name="person_empty_body">%s ещё ничего не добавил(а). Мы сообщим, когда появится.</string>
+    <string name="wrapped">Упаковано</string>
+    <string name="idea">Идея</string>
+    <string name="priority_nice">Было бы мило</string>
+    <string name="priority_love">Очень хочу</string>
+    <string name="priority_dream">Подарок мечты</string>
+    <string name="wish_of_person">%1$s · %2$s</string>
+    <string name="claim_action">Я подарю это</string>
+    <string name="claim_undo">Упаковано · Отменить</string>
+    <string name="claim_hint_open">Ваш выбор останется тайной для получателя (%s).</string>
+    <string name="claim_hint_mine">Вы дарите это. Остальные увидят, что подарок занят. %s — никогда.</string>
+    <string name="claim_hint_other">%1$s дарит это. %2$s не знает.</string>
+    <string name="open_in_store">Открыть в магазине</string>
+    <string name="mark_received">Получено</string>
+    <string name="received">Получено</string>
+    <string name="delete_wish_title">Удалить желание?</string>
+    <string name="delete_wish_body">Те, с кем вы им поделились, больше его не увидят.</string>
+    <string name="about_me">Обо мне</string>
+    <string name="about_size_clothing">Одежда</string>
+    <string name="about_size_shoes">Обувь</string>
+    <string name="about_size_ring">Кольцо</string>
+    <string name="about_colors">Любимые цвета</string>
+    <string name="about_allergies">Аллергии</string>
+    <string name="about_dont_buy">Пожалуйста, не дарите</string>
+
+    <string name="new_wish">Новое желание</string>
+    <string name="edit_wish">Изменить желание</string>
+    <string name="field_link">Ссылка</string>
+    <string name="field_link_hint">Вставьте ссылку на товар</string>
+    <string name="field_title">Что это?</string>
+    <string name="field_price">Цена</string>
+    <string name="field_store">Магазин</string>
+    <string name="field_note">Заметка для близких</string>
+    <string name="field_note_hint">Размер, цвет, почему нравится…</string>
+    <string name="field_kind_product">Товар</string>
+    <string name="field_kind_idea">Идея или впечатление</string>
+    <string name="fetching_link">Читаем ссылку…</string>
+    <string name="link_failed">Не удалось прочитать страницу. Заполните данные вручную.</string>
+    <string name="visible_all">Все мои круги</string>
+    <string name="visible_to">Кто видит</string>
+    <string name="visible_to_none">Пока только вы. Выберите хотя бы один круг.</string>
+    <string name="how_much">Насколько хочется?</string>
+
+    <string name="circles_title">Круги</string>
+    <string name="circle_pair">Только мы вдвоём</string>
+    <string name="circle_group">Группа</string>
+    <plurals name="members">
+        <item quantity="one">%d участник</item>
+        <item quantity="few">%d участника</item>
+        <item quantity="many">%d участников</item>
+        <item quantity="other">%d участника</item>
+    </plurals>
+    <string name="create_circle">Новый круг</string>
+    <string name="circle_name">Название</string>
+    <string name="circle_name_hint">например: Семья, Мая и я</string>
+    <string name="invite">Пригласить</string>
+    <string name="invite_message">Присоединяйся ко мне в ThinkOfMe, чтобы мы всегда знали, что подарить друг другу: %s</string>
+    <string name="invite_code">Код приглашения: %s</string>
+    <string name="join_with_code">Вступить по коду</string>
+    <string name="join">Вступить</string>
+    <string name="join_title">Вступить в «%s»?</string>
+    <string name="join_body">Вас пригласил(а) %1$s. %2$s</string>
+    <string name="leave_circle">Выйти из круга</string>
+    <string name="circles_empty_title">Дарить вместе приятнее</string>
+    <string name="circles_empty_body">Круг — это те, кто видит ваши желания: партнёр, семья, друзья.</string>
+
+    <string name="dates_title">Даты</string>
+    <string name="add_date">Добавить дату</string>
+    <string name="date_whose">Чей это день?</string>
+    <string name="date_title">Название</string>
+    <string name="date_pick">Дата</string>
+    <string name="date_yearly">Каждый год</string>
+    <string name="dates_empty_title">Пока нет дат</string>
+    <string name="dates_empty_body">Добавьте дни рождения и годовщины. Мы вовремя всем напомним.</string>
+    <string name="me">Я</string>
+
+    <string name="welcome_title">Больше не гадайте с подарками</string>
+    <string name="welcome_body">Список желаний для тех, кто вас любит, и тихий взгляд на то, о чём мечтают они.</string>
+    <string name="continue_google">Продолжить с Google</string>
+    <string name="explore_demo">Посмотреть на примере</string>
+    <string name="demo_banner">Демо-режим: примеры данных только на этом устройстве</string>
+    <string name="onboarding_name">Как вас называть?</string>
+    <string name="onboarding_birthday">Когда у вас день рождения?</string>
+    <string name="onboarding_birthday_hint">Чтобы близкие получили напоминание. Год указывать не обязательно.</string>
+    <string name="onboarding_continue">Продолжить</string>
+    <string name="settings_title">Настройки</string>
+    <string name="settings_profile">Профиль</string>
+    <string name="settings_name">Ваше имя</string>
+    <string name="settings_notifications">Напоминания</string>
+    <string name="settings_notifications_body">Перед важными днями ваших близких и перед вашими.</string>
+    <string name="settings_privacy_ads">Настройки рекламы</string>
+    <string name="settings_sign_out">Выйти</string>
+    <string name="settings_delete_account">Удалить аккаунт</string>
+    <string name="delete_account_body">Ваши желания, даты и участие в кругах будут удалены навсегда. Это нельзя отменить.</string>
+</resources>

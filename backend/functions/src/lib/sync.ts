@@ -1,6 +1,6 @@
 import { FieldValue, type DocumentReference } from "firebase-admin/firestore";
 import { db } from "./firebase";
-import { type CircleMembership, computeConnections, computeViewerIds, sameIds } from "./visibility";
+import { ALL_CIRCLES, type CircleMembership, computeConnections, computeViewerIds, sameIds } from "./visibility";
 
 export async function loadCircles(ids: readonly string[]): Promise<Map<string, CircleMembership | undefined>> {
   const unique = [...new Set(ids)].filter((id) => id.length > 0);
@@ -13,6 +13,12 @@ export async function loadCircles(ids: readonly string[]): Promise<Map<string, C
   return map;
 }
 
+/** Every circle a user belongs to. */
+export async function circlesOf(userId: string): Promise<Map<string, CircleMembership | undefined>> {
+  const snap = await db.collection("circles").where("memberIds", "array-contains", userId).get();
+  return new Map(snap.docs.map((doc) => [doc.id, { id: doc.id, memberIds: (doc.get("memberIds") as string[]) ?? [] }]));
+}
+
 /**
  * Recompute `viewerIds` for a wish or occasion. Writes only when the value
  * changes (so the resulting trigger is a no-op). For wishes, the claims'
@@ -21,7 +27,9 @@ export async function loadCircles(ids: readonly string[]): Promise<Map<string, C
 export async function syncViewers(ref: DocumentReference, data: FirebaseFirestore.DocumentData): Promise<string[]> {
   const ownerId = String(data.ownerId ?? "");
   const visibleCircleIds = (data.visibleCircleIds as string[] | undefined) ?? [];
-  const circles = await loadCircles(visibleCircleIds);
+  const circles = visibleCircleIds.includes(ALL_CIRCLES)
+    ? await circlesOf(ownerId)
+    : await loadCircles(visibleCircleIds);
   const viewerIds = computeViewerIds(ownerId, visibleCircleIds, circles);
 
   if (!sameIds(viewerIds, data.viewerIds as string[] | undefined)) {
@@ -59,12 +67,25 @@ export async function refreshConnections(userIds: readonly string[]): Promise<vo
   );
 }
 
-/** Re-derive visibility for every wish and occasion shared with a circle. */
-export async function resyncCircleItems(circleId: string): Promise<void> {
+/**
+ * Re-derive visibility for every wish and occasion shared with a circle,
+ * plus the "all my circles" items of everyone whose membership changed.
+ */
+export async function resyncCircleItems(circleId: string, members: readonly string[] = []): Promise<void> {
   for (const collection of ["wishes", "occasions"] as const) {
     const items = await db.collection(collection).where("visibleCircleIds", "array-contains", circleId).get();
     for (const item of items.docs) {
       await syncViewers(item.ref, item.data());
+    }
+    for (const memberId of new Set(members)) {
+      const everywhere = await db
+        .collection(collection)
+        .where("ownerId", "==", memberId)
+        .where("visibleCircleIds", "array-contains", ALL_CIRCLES)
+        .get();
+      for (const item of everywhere.docs) {
+        await syncViewers(item.ref, item.data());
+      }
     }
   }
 }

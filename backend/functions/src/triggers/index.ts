@@ -3,8 +3,8 @@ import { logger } from "firebase-functions";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { db, REGION } from "../lib/firebase";
 import { notifyUser } from "../lib/notify";
-import { loadCircles, refreshConnections, resyncCircleItems, syncViewers } from "../lib/sync";
-import { sameIds } from "../lib/visibility";
+import { circlesOf, loadCircles, refreshConnections, resyncCircleItems, syncViewers } from "../lib/sync";
+import { ALL_CIRCLES, sameIds } from "../lib/visibility";
 
 const MATERIAL_WISH_FIELDS = ["title", "urls", "price", "note", "quantity", "store"] as const;
 
@@ -18,7 +18,7 @@ export const onCircleWritten = onDocumentWritten({ document: "circles/{circleId}
 
   const circleId = event.params.circleId;
   await refreshConnections([...beforeMembers, ...afterMembers]);
-  await resyncCircleItems(circleId);
+  await resyncCircleItems(circleId, [...beforeMembers, ...afterMembers]);
 
   if (!after) {
     // Circle deleted: detach it from items and remove its activity feed.
@@ -60,7 +60,9 @@ export const onWishWritten = onDocumentWritten({ document: "wishes/{wishId}", re
   }
 
   if (!before) {
-    await postActivity(String(after.ownerId), after.visibleCircleIds as string[] | undefined, {
+    const targets = (after.visibleCircleIds as string[] | undefined) ?? [];
+    const circleIds = targets.includes(ALL_CIRCLES) ? [...(await circlesOf(String(after.ownerId))).keys()] : targets;
+    await postActivity(String(after.ownerId), circleIds, {
       type: "wishAdded",
       actorId: after.ownerId,
       wishId,
@@ -108,7 +110,7 @@ async function postActivity(actorId: string, circleIds: string[] | undefined, it
     const circles = await loadCircles(circleIds);
     const batch = db.batch();
     for (const circleId of circleIds) {
-      // Only circles the actor belongs to.
+      // Only real circles the actor belongs to.
       if (!circles.get(circleId)?.memberIds.includes(actorId)) continue;
       batch.set(db.collection("circles").doc(circleId).collection("activity").doc(), {
         ...item,
