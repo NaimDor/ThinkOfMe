@@ -8,7 +8,7 @@ final class EditWishModel {
     private let backend: any Backend
     let wishId: String?
     var draft = WishDraft()
-    private(set) var circles: [Circle] = []
+    private(set) var circles: [GiftCircle] = []
     private(set) var unfurling = false
     private(set) var unfurlFailed = false
     private(set) var saving = false

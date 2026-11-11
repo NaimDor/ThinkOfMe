@@ -11,7 +11,7 @@ public final class DemoBackend: Backend {
 
     private var user: SessionUser? { didSet { hub.notify() } }
     public private(set) var peopleById: [String: Person] = [:]
-    public private(set) var circleList: [Circle] = []
+    public private(set) var circleList: [GiftCircle] = []
     public private(set) var wishList: [Wish] = []
     public private(set) var claimList: [Claim] = []
     public private(set) var occasionList: [Occasion] = []
@@ -43,8 +43,8 @@ public final class DemoBackend: Backend {
             "noa": Person(id: "noa", displayName: "Noa", hueIndex: 3),
         ]
         circleList = [
-            Circle(id: "us", name: "Maya & me", kind: .pair, ownerId: meId, memberIds: [meId, "maya"], adminIds: [meId]),
-            Circle(id: "family", name: "Family", kind: .group, ownerId: "mom", memberIds: [meId, "maya", "mom", "dan", "noa"], adminIds: ["mom", meId]),
+            GiftCircle(id: "us", name: "Maya & me", kind: .pair, ownerId: meId, memberIds: [meId, "maya"], adminIds: [meId]),
+            GiftCircle(id: "family", name: "Family", kind: .group, ownerId: "mom", memberIds: [meId, "maya", "mom", "dan", "noa"], adminIds: ["mom", meId]),
         ]
         occasionList = [
             occasion("o1", "maya", .birthday, "Birthday", inDays: 12, age: 34, circles: ["us", "family"]),
@@ -114,10 +114,10 @@ public final class DemoBackend: Backend {
 
     // MARK: Circles
 
-    public func circles() -> AsyncStream<[Circle]> { hub.stream { [unowned self] in circleList.filter { $0.memberIds.contains(meId) } } }
+    public func circles() -> AsyncStream<[GiftCircle]> { hub.stream { [unowned self] in circleList.filter { $0.memberIds.contains(meId) } } }
     public func createCircle(name: String, kind: CircleKind) async throws -> String {
         let id = UUID().uuidString
-        circleList.append(Circle(id: id, name: name, kind: kind, ownerId: meId, memberIds: [meId], adminIds: [meId]))
+        circleList.append(GiftCircle(id: id, name: name, kind: kind, ownerId: meId, memberIds: [meId], adminIds: [meId]))
         changed()
         return id
     }

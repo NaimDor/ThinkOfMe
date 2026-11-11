@@ -47,7 +47,7 @@ public struct Person: Identifiable, Equatable, Sendable {
 
 public enum CircleKind: String, Sendable { case pair, group }
 
-public struct Circle: Identifiable, Equatable, Sendable {
+public struct GiftCircle: Identifiable, Equatable, Sendable {
     public let id: String
     public var name: String
     public var kind: CircleKind

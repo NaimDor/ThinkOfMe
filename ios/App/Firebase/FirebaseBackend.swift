@@ -109,8 +109,8 @@ final class FirebaseBackend: Backend {
         )
     }
 
-    nonisolated static func circle(_ doc: DocumentSnapshot) -> Circle {
-        Circle(
+    nonisolated static func circle(_ doc: DocumentSnapshot) -> GiftCircle {
+        GiftCircle(
             id: doc.documentID,
             name: doc.get("name") as? String ?? "",
             kind: CircleKind(rawValue: doc.get("kind") as? String ?? "") ?? .group,
@@ -258,7 +258,7 @@ final class FirebaseBackend: Backend {
 
     // MARK: Circles
 
-    func circles() -> AsyncStream<[Circle]> {
+    func circles() -> AsyncStream<[GiftCircle]> {
         guard let uid else { return empty([]) }
         return listen(db.collection("circles").whereField("memberIds", arrayContains: uid)) { docs in
             docs.map(Self.circle).sorted { $0.name < $1.name }

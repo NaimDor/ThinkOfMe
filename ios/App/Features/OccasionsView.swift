@@ -8,7 +8,7 @@ final class OccasionsModel {
     private let backend: any Backend
     private(set) var occasions: [Occasion] = []
     private(set) var people: [String: Person] = [:]
-    private(set) var circles: [Circle] = []
+    private(set) var circles: [GiftCircle] = []
     private(set) var holidayChoices: Set<String>?
     private(set) var loaded = false
 
@@ -131,7 +131,7 @@ struct DaysChip: View {
 struct AddOccasionSheet: View {
     let meId: String
     let people: [String: Person]
-    let circles: [Circle]
+    let circles: [GiftCircle]
     var save: (Occasion) -> Void
 
     @State private var kind: OccasionKind = .birthday

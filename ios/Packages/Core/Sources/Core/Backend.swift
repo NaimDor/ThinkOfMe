@@ -31,7 +31,7 @@ public protocol Backend: AnyObject {
     func saveDevice(timeZone: String, locale: String, pushToken: String?) async throws
 
     // Circles
-    func circles() -> AsyncStream<[Circle]>
+    func circles() -> AsyncStream<[GiftCircle]>
     func createCircle(name: String, kind: CircleKind) async throws -> String
     func createInvite(circleId: String) async throws -> Invite
     func previewInvite(code: String) async throws -> InvitePreview

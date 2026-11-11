@@ -6,7 +6,7 @@ import SwiftUI
 @Observable
 final class CirclesModel {
     private let backend: any Backend
-    private(set) var circles: [Circle] = []
+    private(set) var circles: [GiftCircle] = []
     private(set) var people: [String: Person] = [:]
     private(set) var loaded = false
     var shareURL: URL?
@@ -82,7 +82,7 @@ struct CirclesView: View {
         .task { await model.observe() }
     }
 
-    private func card(_ circle: Circle) -> some View {
+    private func card(_ circle: GiftCircle) -> some View {
         VStack(alignment: .leading, spacing: Space.xs) {
             HStack {
                 VStack(alignment: .leading) {
