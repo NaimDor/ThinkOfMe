@@ -113,8 +113,58 @@ local notifications as an offline fallback for your own occasions.
 - Price-drop hints, "received" thank-you cards
 
 **Later**
-- Premium tier (unlimited Circles, themes, extra reminders), affiliate links
-  with disclosure, alternative calendars (e.g. lunar/Hebrew date birthdays)
+- Premium tier (unlimited Circles, themes, extra reminders), alternative
+  calendars (e.g. lunar/Hebrew date birthdays)
+
+### 1.7 Monetization — small, respectful ads
+Ads ship in **v1.0** via **Google AdMob** (Google Mobile Ads SDK on both
+platforms, linked to the Firebase project). There are **no full-screen,
+interstitial, rewarded or app-open ads, ever**.
+
+**Formats**
+- **Native ad cards**, the main format. They are drawn in our own design
+  (same card shape, shadow and type) and look like wish cards, with a clear
+  **"Ad"** label as AdMob policy requires. This earns the most and fits the
+  3D look much better than a stock banner.
+- **Inline adaptive banners** (a thin bar) at the end of long lists.
+- No banner pinned above the floating tab bar: it would clash with the
+  design and cause accidental taps, which AdMob penalizes.
+
+**Where ads may appear**
+
+| Screen | Ad | Frequency |
+|---|---|---|
+| Home feed ("New from your people") | Native card | 1 after the 6th item, then every 10 items |
+| A person's wishlist grid | Native tile | 1 per 12 wishes, never in the first row |
+| Occasions timeline | Inline banner | 1, at the end of the list |
+| Circles list | Inline banner | 1, at the end of the list, only with 4+ Circles |
+
+**Never**: onboarding, add/edit wish, wish detail, the "wrap it"
+claim flow, invites, settings, notifications, widgets, share extension, or
+the day of an occasion on that person's screen.
+
+**Rules**
+- Frequency, placements and a global kill switch live in **Firebase Remote
+  Config**, so they can be tuned without an app release.
+- **Consent**: Google UMP consent form (GDPR/EEA, UK, and US states), iOS
+  **App Tracking Transparency** prompt shown once, after onboarding and
+  never at first launch. If the user declines, they get non-personalized ads.
+- Ads load lazily and off the main thread. If an ad fails to load, the
+  layout just closes the gap with no empty boxes, and Reduce Motion and
+  dark mode are respected.
+- Debug and CI builds always use Google's **test ad unit IDs**, so we never
+  click our own live ads, which can get the account banned.
+- Privacy disclosures: App Store privacy label and Play Data safety form
+  must declare the advertising data; the privacy policy covers AdMob.
+- **"Remove ads"** one-time in-app purchase (StoreKit 2 / Play Billing) in
+  v1.1. It is cheap to add, and some users happily pay for it.
+
+**Revenue expectations (honest)**: native and banner ads pay little per view
+(about $0.20–$3 per 1,000 impressions depending on country). Expect pocket
+money until the app has thousands of daily users. **Affiliate links** pay
+more for a gift app, because users literally go buy the thing. Store links
+can be tagged with affiliate IDs (e.g. Amazon Associates) and labeled with a
+clear disclosure. Planned for v1.1, alongside ads.
 
 ---
 
@@ -204,6 +254,7 @@ and Material 3 Expressive motion on Android).
 |---|---|---|
 | Clients | **Native**: SwiftUI (iOS) + Jetpack Compose (Android) | Your call; best fidelity & motion. |
 | Backend | **Firebase** (Auth, Firestore, Cloud Functions, Storage, FCM, App Check, Remote Config, Crashlytics, Analytics) | First-class native SDKs on both platforms, real-time sync + offline cache built in, push included, server-enforced security rules for the surprise guarantee, no servers to run. |
+| Ads | **AdMob** native + inline adaptive banners, Google UMP consent, iOS ATT | Links to Firebase; native ads can be fully styled to the design. |
 | Functions | TypeScript, Node 22, 2nd gen | Typed shared models, scheduled jobs. |
 | iOS min | **iOS 18** (Liquid Glass extras on 26+) | Observation, `MeshGradient`, zoom transitions; >90% of active devices by late 2026. |
 | Android min | **API 26 (Android 8)**, target latest | Broad reach; enhanced effects gated by API level. |
@@ -302,23 +353,54 @@ activity/{circleId}/items/{id}       # claim-free feed, written only by function
 | M4 | Circles | Create, invite link/QR, join, members, roles |
 | M5 | Claims | Wrap-it flow, claim-safe UI everywhere, buyer change alerts |
 | M6 | Occasions & push | Occasions UI, FCM, scheduled reminders, settings |
-| M7 | Polish | Widgets, activity feed, empty states, accessibility pass, RTL, localization |
+| M7 | Polish & ads | Widgets, activity feed, empty states, accessibility pass, RTL, localization (en/he/ar/ru), AdMob native/banner slots, consent flow, Remote Config ad controls |
 | M8 | Launch prep | Account deletion/export, privacy policy, store assets, TestFlight/Play internal testing, make repo private |
 
 ---
 
-## 5. What I need from you (can't be done from here)
-1. **Firebase project** (free Spark plan to start; Blaze needed for scheduled
-   functions/outbound fetch — usage at this scale is ~free).
-2. **Apple Developer account** ($99/yr) — APNs key, Sign in with Apple, App
-   Group for widgets/share extension, Universal Links.
-3. **Google Play Console** ($25 one-time).
-4. A **domain** for invite links / web viewer (e.g. `thinkofme.app` — check
-   availability and trademark for the name).
+## 5. Account setup checklist (owner)
+You already have an **Apple Developer account** and a **Firebase account**.
+Development runs on the **Firebase Emulator Suite**, so none of this blocks
+coding. It is needed before the first real-device build.
 
-Config files (`GoogleService-Info.plist`, `google-services.json`) and keys are
-**never committed** (the repo is public) — CI gets them from GitHub Secrets;
-local builds use a documented placeholder.
+**Identifiers**: bundle ID / application ID `com.thinkofme.app` (both
+platforms); App Group `group.com.thinkofme.app`.
+
+**Firebase console**
+1. Create project **ThinkOfMe** with Google Analytics enabled (needed for
+   AdMob linking).
+2. Switch to the **Blaze** plan and set a **budget alert** (e.g. $10/month).
+   Scheduled reminders and link unfurling need it; at this scale it costs ~$0.
+3. Add an **iOS app** and an **Android app**, both `com.thinkofme.app`.
+4. **Authentication** → enable Apple, Google, Email link.
+5. **Firestore** → create in production mode. Pick the region closest to most
+   users (e.g. `europe-west1`, or `me-west1` Tel Aviv). It cannot be
+   changed later.
+6. **Storage** → create a bucket in the same region.
+
+**Apple Developer**
+7. Register App ID `com.thinkofme.app` with: Sign in with Apple, Push
+   Notifications, App Groups, Associated Domains.
+8. Create an **APNs Auth Key (.p8)** and upload it in Firebase → Project
+   settings → Cloud Messaging. Do not send the key to anyone, including in chat.
+
+**AdMob**
+9. Create an AdMob account, link it to the Firebase project, add the iOS
+   and Android apps, and create per platform one **Native advanced** and one
+   **Banner** ad unit.
+
+**Google Play Console** ($25 one-time). Needed before Android testing on
+the Play Store; not needed for development.
+
+**Domain** for invite links / web viewer (e.g. `thinkofme.app`); check the
+name's availability and trademark.
+
+**Secrets → GitHub, never into the repo or chat**: in the repository's
+Settings → Secrets and variables → Actions, add
+`GOOGLE_SERVICE_INFO_PLIST_B64`, `GOOGLE_SERVICES_JSON_B64` (base64 of the
+two config files), and `FIREBASE_TOKEN` / service-account JSON for deploys.
+AdMob app IDs and ad unit IDs aren't secret (they ship inside the app), so
+they go in a config file. The repo uses Google's test IDs until launch.
 
 ## 6. Notes & risks
 - **Public repo**: free macOS CI minutes are a real benefit; when switching to
