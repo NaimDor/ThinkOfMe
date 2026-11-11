@@ -1,0 +1,49 @@
+name: Deploy backend
+
+# Deploys Firestore rules + indexes, Storage rules and Cloud Functions to your
+# Firebase project. Start it from GitHub → Actions → Deploy backend → "Run workflow".
+#
+# Required repository secrets:
+#   FIREBASE_PROJECT_ID            e.g. thinkofme-12345
+#   FIREBASE_SERVICE_ACCOUNT_JSON  JSON key of a service account allowed to deploy
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-backend
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: backend
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: backend/functions/package-lock.json
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install
+        run: npm ci --prefix functions
+      - name: Test before deploying
+        run: npm test --prefix functions && npm run test:rules --prefix functions
+      - name: Deploy
+        env:
+          PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          if [ -z "$PROJECT" ] || [ -z "$SERVICE_ACCOUNT" ]; then
+            echo "::error::Add FIREBASE_PROJECT_ID and FIREBASE_SERVICE_ACCOUNT_JSON repository secrets."; exit 1
+          fi
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
+          functions/node_modules/.bin/firebase deploy --project "$PROJECT" \
+            --only firestore,storage,functions --force --non-interactive
