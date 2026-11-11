@@ -10,7 +10,7 @@ name: TestFlight
 #   APP_STORE_CONNECT_ISSUER_ID    App Store Connect API issuer ID
 #   APP_STORE_CONNECT_KEY_P8       Contents of the downloaded AuthKey_XXXX.p8 file
 # Optional:
-#   GOOGLE_SERVICE_INFO_PLIST_B64  base64 of GoogleService-Info.plist (without it the build runs in demo mode)
+#   GOOGLE_SERVICE_INFO_PLIST_B64  GoogleService-Info.plist: its plain text or base64 (without it the build runs in demo mode)
 #   ADMOB_APP_ID_IOS, ADMOB_NATIVE_UNIT_IOS, ADMOB_BANNER_UNIT_IOS (without them Google's test ads are shown)
 
 on:
@@ -71,7 +71,13 @@ jobs:
             true
           } > Config/Secrets.xcconfig
           if [ -n "$PLIST_B64" ]; then
-            echo "$PLIST_B64" | base64 --decode > App/GoogleService-Info.plist
+            # Accept either the plain file contents or base64 of the file.
+            if printf '%s' "$PLIST_B64" | head -c 20 | grep -q '<'; then
+              printf '%s\n' "$PLIST_B64" > App/GoogleService-Info.plist
+            else
+              printf '%s' "$PLIST_B64" | base64 --decode > App/GoogleService-Info.plist
+            fi
+            plutil -lint App/GoogleService-Info.plist
             reversed=$(/usr/libexec/PlistBuddy -c "Print :REVERSED_CLIENT_ID" App/GoogleService-Info.plist)
             echo "GOOGLE_REVERSED_CLIENT_ID = $reversed" >> Config/Secrets.xcconfig
             echo "Firebase config found: building against your Firebase project."
