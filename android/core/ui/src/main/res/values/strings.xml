@@ -140,6 +140,7 @@
     <string name="date_yearly">Every year</string>
     <string name="dates_empty_title">No dates yet</string>
     <string name="dates_empty_body">Add birthdays and anniversaries. We\'ll remind everyone in time.</string>
+    <string name="my_birthday">My birthday</string>
     <string name="me">Me</string>
 
     <!-- Account -->
@@ -157,6 +158,8 @@
     <string name="settings_name">Your name</string>
     <string name="settings_notifications">Reminders</string>
     <string name="settings_notifications_body">Before your people\'s big days, and before your own.</string>
+    <string name="settings_holidays">Holidays</string>
+    <string name="settings_holidays_body">We\'ll remind you before the ones you celebrate.</string>
     <string name="settings_privacy_ads">Ad privacy choices</string>
     <string name="settings_sign_out">Sign out</string>
     <string name="settings_delete_account">Delete account</string>

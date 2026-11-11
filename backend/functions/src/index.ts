@@ -9,3 +9,4 @@ export { onCircleWritten, onWishWritten, onOccasionWritten } from "./triggers";
 export { createInvite, previewInvite, redeemInvite, leaveCircle, removeMember } from "./callable/circles";
 export { deleteAccount, onAccountDeleted, unfurlLink } from "./callable/account";
 export { sendReminders } from "./scheduled/reminders";
+export { sendHolidayReminders } from "./scheduled/holidays";

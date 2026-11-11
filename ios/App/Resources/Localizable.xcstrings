@@ -2791,6 +2791,35 @@
         }
       }
     },
+    "my_birthday": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عيد ميلادي"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "My birthday"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "יום ההולדת שלי"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мой день рождения"
+          }
+        }
+      }
+    },
     "my_list_empty_body": {
       "extractionState": "manual",
       "localizations": {
@@ -3587,6 +3616,64 @@
           "stringUnit": {
             "state": "translated",
             "value": "Удалить аккаунт"
+          }
+        }
+      }
+    },
+    "settings_holidays": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "الأعياد"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Holidays"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "חגים"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Праздники"
+          }
+        }
+      }
+    },
+    "settings_holidays_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "سنذكّرك قبل الأعياد التي تحتفل بها."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We'll remind you before the ones you celebrate."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "נזכיר לכם לפני החגים שאתם חוגגים."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Напомним перед праздниками, которые вы отмечаете."
           }
         }
       }

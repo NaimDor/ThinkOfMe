@@ -9,6 +9,7 @@ final class OccasionsModel {
     private(set) var occasions: [Occasion] = []
     private(set) var people: [String: Person] = [:]
     private(set) var circles: [Circle] = []
+    private(set) var holidayChoices: Set<String>?
     private(set) var loaded = false
 
     init(backend: any Backend) { self.backend = backend }
@@ -16,9 +17,18 @@ final class OccasionsModel {
     var meId: String? { backend.currentUser?.id }
     var upcoming: [UpcomingOccasion] { Overview.upcoming(occasions, people: people, today: .now) }
 
+    /// Holidays the user celebrates, with their next date, soonest first.
+    var holidays: [(holiday: Holiday, date: Date)] {
+        let ids = holidayChoices ?? Holidays.defaults(forLanguage: Fmt.language)
+        return Holidays.all.filter { ids.contains($0.id) }
+            .compactMap { h in h.nextDate(from: .now).map { (holiday: h, date: $0) } }
+            .sorted { $0.date < $1.date }
+    }
+
     func observe() async {
-        let o = backend.occasions(), p = backend.people(), c = backend.circles()
+        let o = backend.occasions(), p = backend.people(), c = backend.circles(), h = backend.holidayChoices()
         await withTaskGroup(of: Void.self) { group in
+            group.addTask { @MainActor in for await value in h { self.holidayChoices = value } }
             group.addTask { @MainActor in for await value in o { self.occasions = value; self.loaded = true } }
             group.addTask { @MainActor in for await value in p { self.people = value } }
             group.addTask { @MainActor in for await value in c { self.circles = value } }
@@ -58,6 +68,29 @@ struct OccasionsView: View {
                     if upcoming.occasion.ownerId == model.meId {
                         Button(L("action_delete"), role: .destructive) { Task { await model.delete(upcoming.occasion.id) } }
                     }
+                }
+            }
+            if !model.holidays.isEmpty {
+                Section {
+                    ForEach(model.holidays, id: \.holiday.id) { item in
+                        HStack(spacing: 14) {
+                            Image(systemName: "gift")
+                                .foregroundStyle(AppColor.accentText)
+                                .frame(width: 44, height: 44)
+                                .background(AppColor.surfaceTint, in: .circle)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(Fmt.holidayName(item.holiday)).textStyle(.bodyStrong).foregroundStyle(AppColor.ink)
+                                Text(Fmt.shortDate(item.date)).textStyle(.caption).foregroundStyle(AppColor.inkMuted)
+                            }
+                            Spacer()
+                            DaysChip(days: Calendar.current.dateComponents([.day], from: Calendar.current.startOfDay(for: .now), to: item.date).day ?? 0)
+                        }
+                        .padding(.vertical, Space.s)
+                        .listRowBackground(Color.clear)
+                        .listRowSeparatorTint(AppColor.hairline)
+                    }
+                } header: {
+                    Text(L("settings_holidays")).textStyle(.title).foregroundStyle(AppColor.ink).textCase(nil)
                 }
             }
             if model.upcoming.count >= 6 {

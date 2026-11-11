@@ -70,10 +70,13 @@ import com.thinkofme.core.designsystem.theme.AppSpace
 import com.thinkofme.core.designsystem.theme.AppTheme
 import com.thinkofme.core.model.ALL_CIRCLES
 import com.thinkofme.core.model.AboutMe
+import com.thinkofme.core.model.Holidays
 import com.thinkofme.core.model.Occasion
 import com.thinkofme.core.model.OccasionKind
 import com.thinkofme.core.ui.R
+import com.thinkofme.core.ui.holidayName
 import com.thinkofme.core.ui.mediumDate
+import com.thinkofme.core.ui.shortDate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -224,6 +227,8 @@ data class SettingsUiState(
     val name: String = "",
     val about: AboutMe = AboutMe(),
     val reminders: Boolean = true,
+    /** Holidays with reminders on (saved choice, or the language defaults). */
+    val holidays: Set<String> = emptySet(),
     val loaded: Boolean = false,
     val saving: Boolean = false,
     val saved: Boolean = false,
@@ -240,7 +245,8 @@ class SettingsViewModel @Inject constructor(
     init {
         viewModelScope.launch {
             val (me, reminders) = combine(profiles.me(), profiles.remindersEnabled()) { a, b -> a to b }.first()
-            _state.update { it.copy(name = me?.displayName.orEmpty(), about = me?.aboutMe ?: AboutMe(), reminders = reminders, loaded = true) }
+            val holidays = profiles.holidayChoices().first() ?: Holidays.defaultsFor(java.util.Locale.getDefault().language)
+            _state.update { it.copy(name = me?.displayName.orEmpty(), about = me?.aboutMe ?: AboutMe(), reminders = reminders, holidays = holidays, loaded = true) }
         }
     }
 
@@ -258,6 +264,12 @@ class SettingsViewModel @Inject constructor(
     fun setReminders(enabled: Boolean) {
         _state.update { it.copy(reminders = enabled) }
         viewModelScope.launch { runCatching { profiles.setRemindersEnabled(enabled) } }
+    }
+
+    fun toggleHoliday(id: String) {
+        val next = _state.value.holidays.let { if (id in it) it - id else it + id }
+        _state.update { it.copy(holidays = next) }
+        viewModelScope.launch { runCatching { profiles.setHolidays(next) } }
     }
 
     fun signOut() = viewModelScope.launch { auth.signOut() }
@@ -306,6 +318,8 @@ fun SettingsScreen(onBack: () -> Unit, onPrivacyOptions: (() -> Unit)?) {
                 Switch(state.reminders, vm::setReminders, colors = SwitchDefaults.colors(checkedTrackColor = AppTheme.colors.accent, checkedThumbColor = AppTheme.colors.onAccent))
             }
             Hairline(Modifier.padding(vertical = AppSpace.xs))
+            HolidaysSection(state.holidays, enabled = state.reminders, onToggle = vm::toggleHoliday)
+            Hairline(Modifier.padding(vertical = AppSpace.xs))
             if (onPrivacyOptions != null) TextAction(stringResource(R.string.settings_privacy_ads), onPrivacyOptions)
             TextAction(stringResource(R.string.settings_sign_out), { vm.signOut() })
             TextAction(stringResource(R.string.settings_delete_account), { confirmDelete = true })
@@ -322,5 +336,28 @@ fun SettingsScreen(onBack: () -> Unit, onPrivacyOptions: (() -> Unit)?) {
             dismissButton = { TextButton({ confirmDelete = false }) { Text(stringResource(R.string.action_cancel)) } },
             containerColor = AppTheme.colors.surface,
         )
+    }
+}
+
+@Composable
+private fun HolidaysSection(selected: Set<String>, enabled: Boolean, onToggle: (String) -> Unit) {
+    val today = LocalDate.now()
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        Text(stringResource(R.string.settings_holidays), style = AppTheme.type.bodyStrong, color = AppTheme.colors.ink)
+        Text(stringResource(R.string.settings_holidays_body), style = AppTheme.type.caption, color = AppTheme.colors.inkMuted)
+        Holidays.all.sortedBy { it.nextDate(today) ?: LocalDate.MAX }.forEach { holiday ->
+            Row(Modifier.fillMaxWidth().padding(vertical = 2.dp), verticalAlignment = Alignment.CenterVertically) {
+                Column(Modifier.weight(1f)) {
+                    Text(holidayName(holiday), style = AppTheme.type.body, color = AppTheme.colors.ink)
+                    holiday.nextDate(today)?.let { Text(shortDate(it), style = AppTheme.type.caption, color = AppTheme.colors.inkMuted) }
+                }
+                Switch(
+                    checked = holiday.id in selected,
+                    onCheckedChange = { onToggle(holiday.id) },
+                    enabled = enabled,
+                    colors = SwitchDefaults.colors(checkedTrackColor = AppTheme.colors.accent, checkedThumbColor = AppTheme.colors.onAccent),
+                )
+            }
+        }
     }
 }

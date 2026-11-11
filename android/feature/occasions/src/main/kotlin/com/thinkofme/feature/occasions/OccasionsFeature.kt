@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBars
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
@@ -67,6 +68,7 @@ import com.thinkofme.core.designsystem.theme.AppSpace
 import com.thinkofme.core.designsystem.theme.AppTheme
 import com.thinkofme.core.model.ALL_CIRCLES
 import com.thinkofme.core.model.Circle
+import com.thinkofme.core.model.Holidays
 import com.thinkofme.core.model.Occasion
 import com.thinkofme.core.model.OccasionKind
 import com.thinkofme.core.model.Person
@@ -74,6 +76,7 @@ import com.thinkofme.core.model.UpcomingOccasion
 import com.thinkofme.core.ui.PersonAvatar
 import com.thinkofme.core.ui.R
 import com.thinkofme.core.ui.ads.InlineBanner
+import com.thinkofme.core.ui.holidayName
 import com.thinkofme.core.ui.mediumDate
 import com.thinkofme.core.ui.occasionTitle
 import com.thinkofme.core.ui.relativeDays
@@ -98,6 +101,8 @@ data class OccasionsUiState(
     val people: Map<String, Person> = emptyMap(),
     val circles: List<Circle> = emptyList(),
     val meId: String? = null,
+    /** Holidays the user celebrates, with their next date, soonest first. */
+    val holidays: List<Pair<com.thinkofme.core.model.Holiday, LocalDate>> = emptyList(),
 )
 
 @HiltViewModel
@@ -108,8 +113,12 @@ class OccasionsViewModel @Inject constructor(
     auth: AuthRepository,
     today: Today,
 ) : ViewModel() {
-    val state: StateFlow<OccasionsUiState> = combine(repo.occasions(), profiles.people(), circles.circles(), auth.session) { occasions, people, circleList, session ->
-        OccasionsUiState(false, ObserveOverview.upcoming(occasions, people, today()), people, circleList, session?.id)
+    val state: StateFlow<OccasionsUiState> = combine(
+        repo.occasions(), profiles.people(), circles.circles(), auth.session, profiles.holidayChoices(),
+    ) { occasions, people, circleList, session, chosen ->
+        val ids = chosen ?: Holidays.defaultsFor(java.util.Locale.getDefault().language)
+        val holidays = Holidays.all.filter { it.id in ids }.mapNotNull { h -> h.nextDate(today())?.let { h to it } }.sortedBy { it.second }
+        OccasionsUiState(false, ObserveOverview.upcoming(occasions, people, today()), people, circleList, session?.id, holidays)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), OccasionsUiState())
 
     fun save(occasion: Occasion) {
@@ -155,6 +164,31 @@ fun OccasionsScreen(state: OccasionsUiState, onOpenPerson: (String) -> Unit, onS
                 trailing = { DaysChip(upcoming.daysUntil) },
             )
             if (index < state.upcoming.lastIndex) Hairline()
+        }
+        if (state.holidays.isNotEmpty()) {
+            item {
+                Text(
+                    stringResource(R.string.settings_holidays),
+                    style = AppTheme.type.title,
+                    color = AppTheme.colors.ink,
+                    modifier = Modifier.padding(top = AppSpace.xl, bottom = AppSpace.xs),
+                )
+            }
+            itemsIndexed(state.holidays, key = { _, h -> "holiday_${h.first.id}" }) { index, (holiday, date) ->
+                ListRow(
+                    onClick = {},
+                    leading = {
+                        androidx.compose.foundation.layout.Box(
+                            Modifier.size(44.dp).clip(CircleShape).background(AppTheme.colors.surfaceTint),
+                            contentAlignment = Alignment.Center,
+                        ) { androidx.compose.material3.Icon(AppIcons.Gift, null, tint = AppTheme.colors.accentText, modifier = Modifier.size(22.dp)) }
+                    },
+                    title = holidayName(holiday),
+                    subtitle = { Text(shortDate(date), style = AppTheme.type.caption, color = AppTheme.colors.inkMuted) },
+                    trailing = { DaysChip(java.time.temporal.ChronoUnit.DAYS.between(LocalDate.now(), date)) },
+                )
+                if (index < state.holidays.lastIndex) Hairline()
+            }
         }
         if (state.upcoming.size >= 6) item { InlineBanner(Modifier.padding(top = AppSpace.l)) }
     }

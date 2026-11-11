@@ -220,6 +220,19 @@ final class FirebaseBackend: Backend {
         }
     }
 
+    func holidayChoices() -> AsyncStream<Set<String>?> {
+        guard let uid else { return empty(nil) }
+        return listen(db.collection("users").document(uid).collection("private").document("settings")) { snapshot in
+            (snapshot.get("holidays") as? [String]).map(Set.init)
+        }
+    }
+
+    func setHolidays(_ ids: Set<String>) async throws {
+        let uid = try requireUid()
+        try await db.collection("users").document(uid).collection("private").document("settings")
+            .setData(["holidays": ids.sorted()], merge: true)
+    }
+
     func remindersEnabled() -> AsyncStream<Bool> {
         guard let uid else { return empty(true) }
         return listen(db.collection("users").document(uid).collection("private").document("settings")) { snapshot in

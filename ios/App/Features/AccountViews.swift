@@ -138,6 +138,7 @@ struct SettingsView: View {
     @State private var name = ""
     @State private var about = AboutMe()
     @State private var reminders = true
+    @State private var holidays: Set<String> = []
     @State private var saved = false
     @State private var confirmDelete = false
 
@@ -170,6 +171,31 @@ struct SettingsView: View {
                 .onChange(of: reminders) { _, value in Task { try? await backend.setRemindersEnabled(value) } }
             }
             Section {
+                ForEach(Holidays.all.sorted { ($0.nextDate(from: .now) ?? .distantFuture) < ($1.nextDate(from: .now) ?? .distantFuture) }) { holiday in
+                    Toggle(isOn: Binding(
+                        get: { holidays.contains(holiday.id) },
+                        set: { on in
+                            if on { holidays.insert(holiday.id) } else { holidays.remove(holiday.id) }
+                            let chosen = holidays
+                            Task { try? await backend.setHolidays(chosen) }
+                        }
+                    )) {
+                        VStack(alignment: .leading) {
+                            Text(Fmt.holidayName(holiday))
+                            if let next = holiday.nextDate(from: .now) {
+                                Text(Fmt.shortDate(next)).font(.footnote).foregroundStyle(AppColor.inkMuted)
+                            }
+                        }
+                    }
+                    .tint(AppColor.accent)
+                    .disabled(!reminders)
+                }
+            } header: {
+                Text(L("settings_holidays"))
+            } footer: {
+                Text(L("settings_holidays_body"))
+            }
+            Section {
                 if let privacyOptions { Button(L("settings_privacy_ads"), action: privacyOptions) }
                 Button(L("settings_sign_out")) { try? backend.signOut() }
                 Button(L("settings_delete_account"), role: .destructive) { confirmDelete = true }
@@ -187,6 +213,8 @@ struct SettingsView: View {
             if let me = await meIterator.next() ?? nil { name = me.displayName; about = me.aboutMe }
             var remindersIterator = backend.remindersEnabled().makeAsyncIterator()
             reminders = await remindersIterator.next() ?? true
+            var holidayIterator = backend.holidayChoices().makeAsyncIterator()
+            holidays = (await holidayIterator.next() ?? nil) ?? Holidays.defaults(forLanguage: Fmt.language)
         }
         .onChange(of: name) { saved = false }
         .onChange(of: about) { saved = false }

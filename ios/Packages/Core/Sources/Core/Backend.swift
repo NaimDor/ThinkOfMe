@@ -23,6 +23,9 @@ public protocol Backend: AnyObject {
     func me() -> AsyncStream<Person?>
     func people() -> AsyncStream<[String: Person]>
     func saveProfile(displayName: String, aboutMe: AboutMe) async throws
+    /// Holidays the user turned on, or nil if they never chose (language defaults apply).
+    func holidayChoices() -> AsyncStream<Set<String>?>
+    func setHolidays(_ ids: Set<String>) async throws
     func remindersEnabled() -> AsyncStream<Bool>
     func setRemindersEnabled(_ enabled: Bool) async throws
     func saveDevice(timeZone: String, locale: String, pushToken: String?) async throws

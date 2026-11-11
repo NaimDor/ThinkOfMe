@@ -55,6 +55,24 @@ const TEMPLATES = {
     ar: { title: "تمت إزالة أمنية ستشتريها", body: "أزال {name} \"{wish}\" من قائمته." },
     ru: { title: "Желание, которое вы дарите, удалено", body: "{name} удалил(а) «{wish}» из списка." },
   },
+  holidaySelf: {
+    en: { title: "{holiday} is in {days} days", body: "Add a few wishes so your people know what would make you smile." },
+    he: { title: "{holiday} בעוד {days} ימים", body: "הוסיפו כמה משאלות, כדי שהאנשים שלכם ידעו מה ישמח אתכם." },
+    ar: { title: "{holiday} بعد {days} يوم", body: "أضف بعض الأمنيات ليعرف أحبّاؤك ما يسعدك." },
+    ru: { title: "{holiday} — через {days} дн.", body: "Добавьте пару желаний, чтобы близкие знали, что вас порадует." },
+  },
+  holidayOthers: {
+    en: { title: "{holiday} is in {days} days", body: "See what your people are wishing for." },
+    he: { title: "{holiday} בעוד {days} ימים", body: "הציצו במה שהאנשים שלכם מאחלים לעצמם." },
+    ar: { title: "{holiday} بعد {days} يوم", body: "اطّلع على ما يتمناه أحبّاؤك." },
+    ru: { title: "{holiday} — через {days} дн.", body: "Посмотрите, о чём мечтают ваши близкие." },
+  },
+  holidayPartner: {
+    en: { title: "{holiday} is in {days} days", body: "See what {name} is wishing for." },
+    he: { title: "{holiday} בעוד {days} ימים", body: "הציצו ברשימת המשאלות של {name}." },
+    ar: { title: "{holiday} بعد {days} يوم", body: "اطّلع على قائمة أمنيات {name}." },
+    ru: { title: "{holiday} — через {days} дн.", body: "Загляните в список желаний: {name}." },
+  },
 } satisfies Record<string, Record<Locale, Message>>;
 
 export type MessageKey = keyof typeof TEMPLATES;

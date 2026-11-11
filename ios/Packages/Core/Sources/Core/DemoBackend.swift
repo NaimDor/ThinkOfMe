@@ -16,6 +16,7 @@ public final class DemoBackend: Backend {
     public private(set) var claimList: [Claim] = []
     public private(set) var occasionList: [Occasion] = []
     private var reminders = true
+    private var holidays: Set<String>?
 
     public var currentUser: SessionUser? { user }
 
@@ -105,6 +106,8 @@ public final class DemoBackend: Backend {
         peopleById[meId]?.aboutMe = aboutMe
         changed()
     }
+    public func holidayChoices() -> AsyncStream<Set<String>?> { hub.stream { [unowned self] in holidays } }
+    public func setHolidays(_ ids: Set<String>) async throws { holidays = ids; changed() }
     public func remindersEnabled() -> AsyncStream<Bool> { hub.stream { [unowned self] in reminders } }
     public func setRemindersEnabled(_ enabled: Bool) async throws { reminders = enabled; changed() }
     public func saveDevice(timeZone: String, locale: String, pushToken: String?) async throws {}

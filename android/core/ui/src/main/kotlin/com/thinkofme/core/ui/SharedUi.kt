@@ -89,6 +89,7 @@ fun occasionTitle(upcoming: UpcomingOccasion, meId: String?): String {
     // Birthdays always read "<name>'s birthday" in the viewer's language;
     // other occasions keep the title their creator wrote.
     if (occasion.kind != OccasionKind.BIRTHDAY && occasion.title.isNotBlank()) return occasion.title
+    if (meId != null && upcoming.person?.id == meId) return stringResource(R.string.my_birthday)
     val name = upcoming.person?.takeIf { it.id != meId }?.displayName ?: stringResource(R.string.me)
     return stringResource(R.string.occasion_possessive, name, occasionKindName(occasion.kind))
 }
@@ -115,6 +116,10 @@ fun relativeDays(days: Long): String = when (days) {
     1L -> stringResource(R.string.tomorrow)
     else -> pluralStringResource(R.plurals.days_to_go, days.toInt(), days.toInt())
 }
+
+@Composable
+@ReadOnlyComposable
+fun holidayName(holiday: com.thinkofme.core.model.Holiday): String = holiday.name(currentLocale().language)
 
 @Composable
 @ReadOnlyComposable

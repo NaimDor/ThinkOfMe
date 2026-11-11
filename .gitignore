@@ -45,3 +45,5 @@ ui-debug.log
 ios/Config/Secrets.xcconfig
 ios/App/Info.plist
 ios/App/ThinkOfMe.entitlements
+**/.gradle/
+android/build-logic/**/build/

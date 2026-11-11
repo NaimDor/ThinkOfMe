@@ -148,6 +148,7 @@
     <string name="date_yearly">كل عام</string>
     <string name="dates_empty_title">لا تواريخ بعد</string>
     <string name="dates_empty_body">أضف أعياد الميلاد وذكريات الزواج. سنذكّر الجميع في الوقت المناسب.</string>
+    <string name="my_birthday">عيد ميلادي</string>
     <string name="me">أنا</string>
 
     <string name="welcome_title">لا مزيد من تخمين الهدايا</string>
@@ -164,6 +165,8 @@
     <string name="settings_name">اسمك</string>
     <string name="settings_notifications">التذكيرات</string>
     <string name="settings_notifications_body">قبل الأيام المهمة لأحبّائك، وقبل يومك أيضًا.</string>
+    <string name="settings_holidays">الأعياد</string>
+    <string name="settings_holidays_body">سنذكّرك قبل الأعياد التي تحتفل بها.</string>
     <string name="settings_privacy_ads">خيارات خصوصية الإعلانات</string>
     <string name="settings_sign_out">تسجيل الخروج</string>
     <string name="settings_delete_account">حذف الحساب</string>

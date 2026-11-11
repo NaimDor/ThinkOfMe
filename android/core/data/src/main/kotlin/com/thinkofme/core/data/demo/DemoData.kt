@@ -52,6 +52,7 @@ class DemoStore @Inject constructor() {
 
     val session = MutableStateFlow<SessionUser?>(null)
     val reminders = MutableStateFlow(true)
+    val holidays = MutableStateFlow<Set<String>?>(null)
 
     val people = MutableStateFlow(
         mapOf(
@@ -135,6 +136,11 @@ class DemoProfileRepository @Inject constructor(private val store: DemoStore) : 
 
     override suspend fun saveProfile(displayName: String, aboutMe: AboutMe) {
         store.people.update { it + (store.me to it.getValue(store.me).copy(displayName = displayName, aboutMe = aboutMe)) }
+    }
+
+    override fun holidayChoices(): Flow<Set<String>?> = store.holidays
+    override suspend fun setHolidays(ids: Set<String>) {
+        store.holidays.value = ids
     }
 
     override fun remindersEnabled(): Flow<Boolean> = store.reminders

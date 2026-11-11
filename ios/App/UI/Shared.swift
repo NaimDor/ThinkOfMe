@@ -55,6 +55,13 @@ enum Fmt {
         }
     }
 
+    static var language: String {
+        let code = Locale.current.language.languageCode?.identifier ?? "en"
+        return code == "iw" ? "he" : code
+    }
+
+    static func holidayName(_ holiday: Holiday) -> String { holiday.name(language: language) }
+
     static func kindName(_ kind: OccasionKind) -> String { L("kind_\(kind.rawValue)") }
     static func kindTitle(_ kind: OccasionKind) -> String { L("kind_\(kind.rawValue)_title") }
 
@@ -62,6 +69,7 @@ enum Fmt {
     static func occasionTitle(_ upcoming: UpcomingOccasion, meId: String?) -> String {
         let occasion = upcoming.occasion
         if occasion.kind != .birthday, !occasion.title.isEmpty { return occasion.title }
+        if let meId, upcoming.person?.id == meId { return L("my_birthday") }
         let name = upcoming.person.flatMap { $0.id == meId ? nil : $0.displayName } ?? L("me")
         return L("occasion_possessive", name, kindName(occasion.kind))
     }

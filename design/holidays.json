@@ -1,0 +1,86 @@
+{
+  "$comment": "Gift-giving holidays. Run `node design/generate-holidays.mjs` after editing: it computes dates (incl. Hebrew and Islamic calendars) and writes the catalog for the backend, Android and iOS. audience: 'couple' = reminders only for people in a two-person circle, naming their partner; 'everyone' = all circles. defaults: app languages for which the holiday is on until the user changes it.",
+  "years": [2026, 2040],
+  "holidays": [
+    {
+      "id": "valentines", "audience": "couple", "rule": { "type": "fixed", "month": 2, "day": 14 },
+      "defaults": ["en", "he", "ar", "ru"],
+      "name": { "en": "Valentine's Day", "he": "יום האהבה", "ar": "عيد الحب", "ru": "День святого Валентина" }
+    },
+    {
+      "id": "tu_bav", "audience": "couple", "rule": { "type": "hebrew", "month": "Av", "day": 15 },
+      "defaults": ["he"],
+      "name": { "en": "Tu B'Av", "he": "ט״ו באב", "ar": "طو بآف", "ru": "Ту би-Ав" }
+    },
+    {
+      "id": "new_year", "audience": "everyone", "rule": { "type": "fixed", "month": 1, "day": 1 },
+      "defaults": ["en", "he", "ar", "ru"],
+      "name": { "en": "New Year", "he": "השנה החדשה", "ar": "رأس السنة الميلادية", "ru": "Новый год" }
+    },
+    {
+      "id": "christmas", "audience": "everyone", "rule": { "type": "fixed", "month": 12, "day": 25 },
+      "defaults": ["en"],
+      "name": { "en": "Christmas", "he": "חג המולד", "ar": "عيد الميلاد المجيد", "ru": "Рождество" }
+    },
+    {
+      "id": "orthodox_christmas", "audience": "everyone", "rule": { "type": "fixed", "month": 1, "day": 7 },
+      "defaults": ["ru"],
+      "name": { "en": "Orthodox Christmas", "he": "חג המולד הפרבוסלבי", "ar": "عيد الميلاد الأرثوذكسي", "ru": "Православное Рождество" }
+    },
+    {
+      "id": "hanukkah", "audience": "everyone", "rule": { "type": "hebrew", "month": "Kislev", "day": 25 },
+      "defaults": ["he"],
+      "name": { "en": "Hanukkah", "he": "חנוכה", "ar": "عيد الأنوار (حانوكا)", "ru": "Ханука" }
+    },
+    {
+      "id": "rosh_hashanah", "audience": "everyone", "rule": { "type": "hebrew", "month": "Tishri", "day": 1 },
+      "defaults": ["he"],
+      "name": { "en": "Rosh Hashanah", "he": "ראש השנה", "ar": "رأس السنة العبرية", "ru": "Рош ха-Шана" }
+    },
+    {
+      "id": "family_day_il", "audience": "everyone", "rule": { "type": "hebrew", "month": "Shevat", "day": 30 },
+      "defaults": ["he"],
+      "name": { "en": "Family Day", "he": "יום המשפחה", "ar": "يوم العائلة", "ru": "День семьи" }
+    },
+    {
+      "id": "womens_day", "audience": "everyone", "rule": { "type": "fixed", "month": 3, "day": 8 },
+      "defaults": ["ru"],
+      "name": { "en": "International Women's Day", "he": "יום האישה הבינלאומי", "ar": "يوم المرأة العالمي", "ru": "8 Марта" }
+    },
+    {
+      "id": "defenders_day", "audience": "everyone", "rule": { "type": "fixed", "month": 2, "day": 23 },
+      "defaults": ["ru"],
+      "name": { "en": "Defender of the Fatherland Day", "he": "יום מגיני המולדת", "ar": "يوم المدافع عن الوطن", "ru": "23 Февраля" }
+    },
+    {
+      "id": "mothers_day", "audience": "everyone", "rule": { "type": "nthWeekday", "month": 5, "weekday": 0, "nth": 2 },
+      "defaults": ["en"],
+      "name": { "en": "Mother's Day", "he": "יום האם", "ar": "عيد الأم", "ru": "День матери" }
+    },
+    {
+      "id": "fathers_day", "audience": "everyone", "rule": { "type": "nthWeekday", "month": 6, "weekday": 0, "nth": 3 },
+      "defaults": ["en"],
+      "name": { "en": "Father's Day", "he": "יום האב", "ar": "عيد الأب", "ru": "День отца" }
+    },
+    {
+      "id": "mothers_day_arab", "audience": "everyone", "rule": { "type": "fixed", "month": 3, "day": 21 },
+      "defaults": ["ar"],
+      "name": { "en": "Mother's Day", "he": "יום האם", "ar": "عيد الأم", "ru": "День матери" }
+    },
+    {
+      "id": "mothers_day_ru", "audience": "everyone", "rule": { "type": "nthWeekday", "month": 11, "weekday": 0, "nth": -1 },
+      "defaults": ["ru"],
+      "name": { "en": "Mother's Day", "he": "יום האם", "ar": "عيد الأم", "ru": "День матери" }
+    },
+    {
+      "id": "eid_al_fitr", "audience": "everyone", "rule": { "type": "islamic", "month": 10, "day": 1 },
+      "defaults": ["ar"],
+      "name": { "en": "Eid al-Fitr", "he": "עיד אל-פיטר", "ar": "عيد الفطر", "ru": "Ураза-байрам" }
+    },
+    {
+      "id": "eid_al_adha", "audience": "everyone", "rule": { "type": "islamic", "month": 12, "day": 10 },
+      "defaults": ["ar"],
+      "name": { "en": "Eid al-Adha", "he": "עיד אל-אדחא", "ar": "عيد الأضحى", "ru": "Курбан-байрам" }
+    }
+  ]
+}

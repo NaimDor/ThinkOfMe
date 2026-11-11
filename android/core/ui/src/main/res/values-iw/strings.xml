@@ -136,6 +136,7 @@
     <string name="date_yearly">כל שנה</string>
     <string name="dates_empty_title">עדיין אין תאריכים</string>
     <string name="dates_empty_body">הוסיפו ימי הולדת וימי נישואין. נזכיר לכולם בזמן.</string>
+    <string name="my_birthday">יום ההולדת שלי</string>
     <string name="me">אני</string>
 
     <string name="welcome_title">לא לנחש מתנות יותר</string>
@@ -152,6 +153,8 @@
     <string name="settings_name">השם שלך</string>
     <string name="settings_notifications">תזכורות</string>
     <string name="settings_notifications_body">לפני הימים הגדולים של האנשים שלך, ולפני שלך.</string>
+    <string name="settings_holidays">חגים</string>
+    <string name="settings_holidays_body">נזכיר לכם לפני החגים שאתם חוגגים.</string>
     <string name="settings_privacy_ads">פרטיות ומודעות</string>
     <string name="settings_sign_out">התנתקות</string>
     <string name="settings_delete_account">מחיקת החשבון</string>

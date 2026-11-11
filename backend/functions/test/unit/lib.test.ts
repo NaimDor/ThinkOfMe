@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { HOLIDAYS, daysUntilHoliday, dueHolidayReminder, enabledHolidays, timeZonesAtHour } from "../../src/lib/holidays";
 import { daysUntilNext, dueReminderOffset, localNow, occurrenceIn } from "../../src/lib/dates";
 import { normalizeInviteCode, generateInviteCode } from "../../src/lib/invites";
 import { occasionName, render, resolveLocale } from "../../src/lib/messages";
@@ -139,5 +140,59 @@ describe("unfurl", () => {
     for (const ip of ["8.8.8.8", "151.101.1.69", "2606:4700::1111"]) {
       expect(isPrivateAddress(ip)).toBe(false);
     }
+  });
+});
+
+describe("holidays", () => {
+  const byId = (id: string) => HOLIDAYS.find((h) => h.id === id)!;
+
+  it("has correct dates for lunar and rule-based holidays", () => {
+    expect(byId("tu_bav").dates).toContain("2026-07-29");
+    expect(byId("hanukkah").dates).toContain("2026-12-05");
+    expect(byId("rosh_hashanah").dates).toContain("2026-09-12");
+    expect(byId("eid_al_fitr").dates).toContain("2026-03-20");
+    expect(byId("eid_al_adha").dates).toContain("2026-05-27");
+    expect(byId("mothers_day").dates).toContain("2026-05-10");
+    expect(byId("mothers_day_ru").dates).toContain("2026-11-29");
+  });
+
+  it("uses language defaults until the user chooses", () => {
+    expect(enabledHolidays(undefined, "he-IL").map((h) => h.id)).toEqual(expect.arrayContaining(["tu_bav", "hanukkah", "valentines"]));
+    expect(enabledHolidays(undefined, "ru").map((h) => h.id)).toEqual(expect.arrayContaining(["womens_day", "new_year"]));
+    expect(enabledHolidays(["christmas"], "he").map((h) => h.id)).toEqual(["christmas"]);
+    expect(enabledHolidays([], "he")).toEqual([]);
+  });
+
+  it("counts days to the next occurrence", () => {
+    expect(daysUntilHoliday(byId("valentines"), { year: 2027, month: 2, day: 7 })).toBe(7);
+  });
+
+  it("sends couple holidays only to people with a partner, naming them", () => {
+    const valentines = [byId("valentines")];
+    const weekBefore = { year: 2027, month: 2, day: 7 };
+    expect(dueHolidayReminder(valentines, weekBefore, { partnerNames: [], hasPeople: true })).toBeNull();
+    expect(dueHolidayReminder(valentines, weekBefore, { partnerNames: ["Maya"], hasPeople: true })).toMatchObject({ kind: "partner", partnerName: "Maya", days: 7 });
+  });
+
+  it("nudges you to add wishes three weeks before", () => {
+    const due = dueHolidayReminder([byId("hanukkah")], { year: 2026, month: 11, day: 14 }, { partnerNames: [], hasPeople: true });
+    expect(due).toMatchObject({ kind: "self", days: 21 });
+    expect(dueHolidayReminder([byId("hanukkah")], { year: 2026, month: 11, day: 14 }, { partnerNames: [], hasPeople: false })).toBeNull();
+  });
+
+  it("finds time zones at a given local hour", () => {
+    const zones = timeZonesAtHour(new Date("2026-11-11T08:00:00Z"), 10);
+    expect(zones).toContain("Asia/Jerusalem");
+    expect(zones).not.toContain("America/New_York");
+  });
+
+  it("renders holiday notifications in every language", () => {
+    for (const locale of ["en", "he", "ar", "ru"] as const) {
+      for (const key of ["holidaySelf", "holidayOthers", "holidayPartner"] as const) {
+        const m = render(key, locale, { holiday: byId("tu_bav").name[locale], days: 7, name: "Maya" });
+        expect(m.title + m.body).not.toMatch(/[{}]/);
+      }
+    }
+    expect(render("holidayPartner", "he", { holiday: byId("tu_bav").name.he, days: 7, name: "מאיה" }).title).toBe("ט״ו באב בעוד 7 ימים");
   });
 });

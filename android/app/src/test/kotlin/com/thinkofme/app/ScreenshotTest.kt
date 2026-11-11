@@ -89,12 +89,22 @@ class ScreenshotTest {
         MyListScreen(MyListUiState(false, store.wishes.value.filter { it.ownerId == store.me }, me), { _, _ -> }, {})
     }
 
+    private fun holidays(language: String) = com.thinkofme.core.model.Holidays.all
+        .filter { it.id in com.thinkofme.core.model.Holidays.defaultsFor(language) }
+        .mapNotNull { h -> h.nextDate(LocalDate.now())?.let { h to it } }
+        .sortedBy { it.second }
+
     @Test fun dates() = snap("dates") {
-        OccasionsScreen(OccasionsUiState(false, overview.upcoming, store.people.value, store.circles.value, store.me), {}, {})
+        OccasionsScreen(OccasionsUiState(false, overview.upcoming, store.people.value, store.circles.value, store.me, holidays("en")), {}, {})
+    }
+
+    @Config(qualifiers = "+iw")
+    @Test fun datesHebrew() = snap("dates_he") {
+        OccasionsScreen(OccasionsUiState(false, overview.upcoming, store.people.value, store.circles.value, store.me, holidays("he")), {}, {})
     }
 
     @Config(qualifiers = "+ar")
     @Test fun datesArabic() = snap("dates_ar") {
-        OccasionsScreen(OccasionsUiState(false, overview.upcoming, store.people.value, store.circles.value, store.me), {}, {})
+        OccasionsScreen(OccasionsUiState(false, overview.upcoming, store.people.value, store.circles.value, store.me, holidays("ar")), {}, {})
     }
 }

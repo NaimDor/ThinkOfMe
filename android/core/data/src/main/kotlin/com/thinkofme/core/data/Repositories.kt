@@ -38,6 +38,10 @@ interface ProfileRepository {
 
     suspend fun saveProfile(displayName: String, aboutMe: AboutMe)
 
+    /** Holidays the user turned on, or null if they never chose (language defaults apply). */
+    fun holidayChoices(): Flow<Set<String>?>
+    suspend fun setHolidays(ids: Set<String>)
+
     fun remindersEnabled(): Flow<Boolean>
     suspend fun setRemindersEnabled(enabled: Boolean)
 

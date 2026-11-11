@@ -140,6 +140,7 @@
     <string name="date_yearly">Каждый год</string>
     <string name="dates_empty_title">Пока нет дат</string>
     <string name="dates_empty_body">Добавьте дни рождения и годовщины. Мы вовремя всем напомним.</string>
+    <string name="my_birthday">Мой день рождения</string>
     <string name="me">Я</string>
 
     <string name="welcome_title">Больше не гадайте с подарками</string>
@@ -156,6 +157,8 @@
     <string name="settings_name">Ваше имя</string>
     <string name="settings_notifications">Напоминания</string>
     <string name="settings_notifications_body">Перед важными днями ваших близких и перед вашими.</string>
+    <string name="settings_holidays">Праздники</string>
+    <string name="settings_holidays_body">Напомним перед праздниками, которые вы отмечаете.</string>
     <string name="settings_privacy_ads">Настройки рекламы</string>
     <string name="settings_sign_out">Выйти</string>
     <string name="settings_delete_account">Удалить аккаунт</string>

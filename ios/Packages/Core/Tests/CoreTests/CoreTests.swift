@@ -83,3 +83,22 @@ import Testing
         #expect(overview.people.allSatisfy { $0.person.id != backend.meId })
     }
 }
+
+@Suite struct HolidayTests {
+    @Test func catalogHasLunarHolidays() {
+        #expect(Holidays.byId("tu_bav") != nil)
+        #expect(Holidays.byId("eid_al_fitr") != nil)
+    }
+
+    @Test func defaultsDependOnLanguage() {
+        #expect(Holidays.defaults(forLanguage: "he").contains("tu_bav"))
+        #expect(Holidays.defaults(forLanguage: "ru").contains("womens_day"))
+        #expect(!Holidays.defaults(forLanguage: "en").contains("tu_bav"))
+        #expect(Holidays.defaults(forLanguage: "xx") == Holidays.defaults(forLanguage: "en"))
+    }
+
+    @Test func nextDateIsInTheFuture() {
+        let next = Holidays.byId("valentines")!.nextDate(from: .now)!
+        #expect(next >= Calendar.current.startOfDay(for: .now))
+    }
+}

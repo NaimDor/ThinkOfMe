@@ -233,6 +233,17 @@ class FirebaseProfileRepository @Inject constructor(private val session: Firebas
         }
     }
 
+    override fun holidayChoices(): Flow<Set<String>?> = session.whenSignedIn(null) { uid ->
+        users.document(uid).collection("private").document("settings").snapshots()
+            .map { doc -> (doc.get("holidays") as? List<*>)?.filterIsInstance<String>()?.toSet() }
+    }
+
+    override suspend fun setHolidays(ids: Set<String>) {
+        val uid = session.requireUid()
+        users.document(uid).collection("private").document("settings")
+            .set(mapOf("holidays" to ids.sorted()), SetOptions.merge()).await()
+    }
+
     override fun remindersEnabled(): Flow<Boolean> = session.whenSignedIn(true) { uid ->
         users.document(uid).collection("private").document("settings").snapshots().map { it.getBoolean("notifications.reminders") != false }
     }
