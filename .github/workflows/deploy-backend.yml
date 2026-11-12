@@ -82,3 +82,17 @@ jobs:
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
           functions/node_modules/.bin/firebase deploy --project "$PROJECT" \
             --only firestore,storage,functions,hosting --force --non-interactive
+
+      - name: Let the apps call the callable functions
+        env:
+          PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          # Callables check Firebase Auth inside the function; Cloud Run must still let the
+          # request through. firebase deploy only sets this when it creates a function, so
+          # apply it on every deploy.
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
+          for fn in createinvite previewinvite redeeminvite leavecircle removemember unfurllink deleteaccount; do
+            gcloud run services add-iam-policy-binding "$fn" --region europe-west1 --project "$PROJECT" \
+              --member=allUsers --role=roles/run.invoker --quiet --format=none
+            echo "$fn: public invoker set"
+          done
