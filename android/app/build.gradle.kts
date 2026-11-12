@@ -37,7 +37,7 @@ android {
     defaultConfig {
         applicationId = "com.thinkofme.app"
         versionCode = (findProperty("versionCode") as String?)?.toInt() ?: 1
-        versionName = "0.1.0"
+        versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("boolean", "HAS_FIREBASE", hasFirebaseConfig.toString())
         buildConfigField("String", "LINK_HOST", "\"$linkHost\"")
