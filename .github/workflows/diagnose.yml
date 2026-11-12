@@ -1,0 +1,56 @@
+name: Diagnose backend
+
+# Read-only health check: can the apps reach the callable functions, and what
+# errors did the backend log recently? The repository is public, so the output
+# is reduced to function names, statuses and error text, with long ids masked.
+on:
+  workflow_dispatch:
+    inputs:
+      hours:
+        description: How many hours of logs to read
+        default: "6"
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Sign in to Google Cloud
+        env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+        run: |
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
+
+      - name: Can the apps reach the functions?
+        env:
+          PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+        run: |
+          # A reachable callable answers an unauthenticated call with 401 JSON;
+          # 403 HTML means the function doesn't allow public invocation.
+          for fn in createInvite previewInvite redeemInvite leaveCircle removeMember unfurlLink deleteAccount; do
+            body=$(curl -s -o /tmp/out -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
+              -d '{"data":{}}' "https://europe-west1-$PROJECT.cloudfunctions.net/$fn")
+            echo "$fn -> HTTP $body $(head -c 120 /tmp/out | tr '\n' ' ')"
+            public=$(gcloud run services get-iam-policy "$(echo "$fn" | tr 'A-Z' 'a-z')" --region europe-west1 \
+              --project "$PROJECT" --format=json 2>/dev/null | jq -r '[.bindings[]? | select(.role=="roles/run.invoker") | .members[]] | any(. == "allUsers")')
+            echo "   public invoker: ${public:-unknown}"
+          done
+
+      - name: Recent backend errors
+        env:
+          PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+          HOURS: ${{ inputs.hours }}
+        run: |
+          since=$(date -u -d "-${HOURS:-6} hours" +%Y-%m-%dT%H:%M:%SZ)
+          gcloud logging read \
+            "resource.type=(\"cloud_run_revision\" OR \"cloud_function\") AND (severity>=WARNING OR httpRequest.status>=400) AND timestamp>=\"$since\"" \
+            --project "$PROJECT" --limit 60 --format=json \
+          | jq -r '.[] | [.timestamp[0:19], (.resource.labels.service_name // .resource.labels.function_name), .severity,
+                (.httpRequest.status // "" | tostring),
+                ((.textPayload // .jsonPayload.message // .protoPayload.status.message // "") | tostring | .[0:300])] | join(" | ")' \
+          | sed -E 's/[A-Za-z0-9_-]{20,}/<id>/g; s/[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+/<email>/g' \
+          || echo "Could not read logs (the deploy account may need the Logs Viewer role)."
