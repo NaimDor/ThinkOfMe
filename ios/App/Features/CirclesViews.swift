@@ -29,25 +29,25 @@ final class CirclesModel {
         do {
             let id = try await backend.createCircle(name: name, kind: kind)
             await invite(id)
-        } catch { failed = true }
+        } catch { report(error, "createCircle"); failed = true }
     }
 
     func invite(_ circleId: String) async {
-        do { shareURL = try await backend.createInvite(circleId: circleId).url } catch { failed = true }
+        do { shareURL = try await backend.createInvite(circleId: circleId).url } catch { report(error, "createInvite"); failed = true }
     }
 
     func rename(_ circleId: String, to name: String) async {
         let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty else { return }
-        do { try await backend.renameCircle(circleId, name: String(trimmed.prefix(60))) } catch { failed = true }
+        do { try await backend.renameCircle(circleId, name: String(trimmed.prefix(60))) } catch { report(error, "renameCircle"); failed = true }
     }
 
     func remove(_ userId: String, from circleId: String) async {
-        do { try await backend.removeMember(userId, from: circleId) } catch { failed = true }
+        do { try await backend.removeMember(userId, from: circleId) } catch { report(error, "removeMember"); failed = true }
     }
 
     func leave(_ circleId: String) async {
-        do { try await backend.leaveCircle(circleId) } catch { failed = true }
+        do { try await backend.leaveCircle(circleId) } catch { report(error, "leaveCircle"); failed = true }
     }
 }
 
@@ -258,7 +258,7 @@ final class JoinModel {
     func join() async {
         joining = true
         defer { joining = false }
-        do { _ = try await backend.joinWithInvite(code: code); joined = true } catch { failed = true }
+        do { _ = try await backend.joinWithInvite(code: code); joined = true } catch { report(error, "joinWithInvite"); failed = true }
     }
 }
 

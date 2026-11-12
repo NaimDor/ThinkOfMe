@@ -10,7 +10,9 @@ import {
   normalizeInviteCode,
 } from "../lib/invites";
 
-const callable = { region: REGION, enforceAppCheck: ENFORCE_APP_CHECK } as const;
+// invoker "public" lets the apps reach the function at all (each one still requires a signed-in
+// user). Set explicitly so every deploy re-applies it, not only the first one.
+const callable = { region: REGION, enforceAppCheck: ENFORCE_APP_CHECK, invoker: "public" } as const;
 
 function requireUid(request: CallableRequest): string {
   const uid = request.auth?.uid;

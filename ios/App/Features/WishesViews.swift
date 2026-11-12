@@ -138,7 +138,7 @@ final class WishModel {
     private func run(_ action: @MainActor () async throws -> Void) async {
         busy = true
         defer { busy = false }
-        do { try await action() } catch { failed = true }
+        do { try await action() } catch { report(error, "wishAction"); failed = true }
     }
 }
 

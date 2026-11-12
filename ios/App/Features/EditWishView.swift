@@ -63,6 +63,7 @@ final class EditWishModel {
             let url = try await backend.uploadPhoto(jpeg, wishId: wishId)
             draft.imageURLs.insert(url, at: 0)
         } catch {
+            report(error, "uploadPhoto")
             failed = true
         }
     }
@@ -89,6 +90,7 @@ final class EditWishModel {
             _ = try await backend.saveWish(id: wishId, isNew: isNew, draft: draft)
             return true
         } catch {
+            report(error, "saveWish")
             failed = true
             return false
         }

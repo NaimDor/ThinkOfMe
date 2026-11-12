@@ -61,7 +61,7 @@ struct SignInView: View {
             defer { busy = false }
             do { try await action() } catch {
                 // Cancelling the system sheet is not an error worth showing.
-                if (error as? ASAuthorizationError)?.code != .canceled { failed = true }
+                if (error as? ASAuthorizationError)?.code != .canceled { report(error, "signIn"); failed = true }
             }
         }
     }
@@ -125,6 +125,7 @@ struct OnboardingView: View {
             }
             done()
         } catch {
+            report(error, "saveProfile")
             failed = true
         }
     }
