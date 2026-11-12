@@ -88,6 +88,10 @@ jobs:
       - name: Generate Xcode project
         run: xcodegen
 
+      - name: Build number
+        # Unique and increasing across runs and re-runs (must beat build 1 already in App Store Connect).
+        run: echo "BUILD_NUMBER=$(( ${{ github.run_number }} * 100 + ${{ github.run_attempt }} ))" >> "$GITHUB_ENV"
+
       - name: Archive
         env:
           KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
@@ -103,7 +107,7 @@ jobs:
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" \
             -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER" \
             DEVELOPMENT_TEAM="$TEAM" CODE_SIGN_STYLE=Automatic \
-            CURRENT_PROJECT_VERSION="${{ github.run_number }}" | tee archive.log | grep -E "error:|ARCHIVE" || true
+            CURRENT_PROJECT_VERSION="$BUILD_NUMBER" | tee archive.log | grep -E "error:|ARCHIVE" || true
           grep -q "ARCHIVE SUCCEEDED" archive.log
 
       - name: Upload to TestFlight
@@ -133,7 +137,7 @@ jobs:
             -allowProvisioningUpdates \
             -authenticationKeyPath "$RUNNER_TEMP/keys/AuthKey_$KEY_ID.p8" \
             -authenticationKeyID "$KEY_ID" -authenticationKeyIssuerID "$ISSUER"
-          echo "::notice::Uploaded build ${{ github.run_number }}. It appears in TestFlight after Apple finishes processing (usually 5-20 minutes)."
+          echo "::notice::Uploaded build $BUILD_NUMBER. It appears in TestFlight after Apple finishes processing (usually 5-20 minutes)."
 
       - name: Upload logs
         if: failure()

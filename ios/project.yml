@@ -62,6 +62,8 @@ targets:
       path: App/Info.plist
       properties:
         CFBundleDisplayName: ThinkOfMe
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
         CFBundleLocalizations: [en, he, ar, ru]
         CFBundleAllowMixedLocalizations: true
         ITSAppUsesNonExemptEncryption: false
