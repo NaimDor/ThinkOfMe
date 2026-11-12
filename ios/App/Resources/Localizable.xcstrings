@@ -2063,6 +2063,64 @@
         }
       }
     },
+    "filled_from_photo": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عبّأنا التفاصيل من صورتك. تحقّق منها."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filled in from your photo. Check the details."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "מילאנו פרטים מהתמונה. כדאי לבדוק שהכול נכון."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заполнили по фото. Проверьте детали."
+          }
+        }
+      }
+    },
+    "find_online": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ابحث عنه على الإنترنت"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Find it online"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "חיפוש באינטרנט"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Найти в интернете"
+          }
+        }
+      }
+    },
     "greeting_afternoon": {
       "extractionState": "manual",
       "localizations": {
@@ -3790,6 +3848,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Было бы мило"
+          }
+        }
+      }
+    },
+    "reading_photo": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "جارٍ قراءة الصورة…"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Reading the photo…"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "קוראים את התמונה…"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Читаем фото…"
           }
         }
       }

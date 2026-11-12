@@ -104,6 +104,9 @@
     <string name="field_kind_product">Товар</string>
     <string name="field_kind_idea">Идея или впечатление</string>
     <string name="fetching_link">Читаем ссылку…</string>
+    <string name="reading_photo">Читаем фото…</string>
+    <string name="filled_from_photo">Заполнили по фото. Проверьте детали.</string>
+    <string name="find_online">Найти в интернете</string>
     <string name="link_failed">Не удалось прочитать страницу. Заполните данные вручную.</string>
     <string name="visible_all">Все мои круги</string>
     <string name="visible_to">Кто видит</string>

@@ -189,6 +189,13 @@ public final class DemoBackend: Backend {
         return LinkPreview(url: url, title: nil, imageURLs: [], siteName: url.host()?.replacingOccurrences(of: "www.", with: ""), price: nil)
     }
 
+    public func analyzePhoto(_ jpeg: Data, locale: String) async throws -> PhotoDetails {
+        try await Task.sleep(for: .milliseconds(1200))
+        return PhotoDetails(isProduct: true, title: "Ceramic pour-over coffee set", brand: "Hario", store: "Kitchen & Co.",
+                            price: Money(amount: 189, currency: "ILS"), note: "White, 2-cup size",
+                            searchQuery: "Hario ceramic pour-over set white 2 cup")
+    }
+
     // MARK: Claims
 
     public func claims(onWishesOf personId: String) -> AsyncStream<[String: [Claim]]> {

@@ -46,6 +46,7 @@ import com.thinkofme.core.designsystem.component.ChoiceChip
 import com.thinkofme.core.designsystem.component.IconCircleButton
 import com.thinkofme.core.designsystem.component.PrimaryButton
 import com.thinkofme.core.designsystem.component.pressable
+import com.thinkofme.core.designsystem.component.TextAction
 import com.thinkofme.core.designsystem.icon.AppIcons
 import com.thinkofme.core.designsystem.theme.AppRadius
 import com.thinkofme.core.designsystem.theme.AppSpace
@@ -101,6 +102,10 @@ fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () ->
                     onPicked = { uri -> encodePhoto(context, uri)?.let(vm::addPhoto) },
                     onRemove = vm::removePhoto,
                 )
+                PhotoReadingStatus(state, onFindOnline = { query ->
+                    val uri = android.net.Uri.parse("https://www.google.com/search?q=" + android.net.Uri.encode(query))
+                    runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri)) }
+                })
 
                 Row(horizontalArrangement = Arrangement.spacedBy(AppSpace.xs)) {
                     ChoiceChip(stringResource(R.string.field_kind_product), draft.kind == WishKind.PRODUCT, { vm.update { copy(kind = WishKind.PRODUCT) } }, icon = AppIcons.Gift)
@@ -186,6 +191,31 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 }
 
 /** Photos of the wish: an "add" tile (photo picker) followed by the current images. */
+/** "Reading the photo…" while it works, then what it filled in and a way to find the product online. */
+@Composable
+private fun PhotoReadingStatus(state: EditWishUiState, onFindOnline: (String) -> Unit) {
+    AnimatedVisibility(state.readingPhoto || state.filledFromPhoto || state.photoSearchQuery != null) {
+        Column(verticalArrangement = Arrangement.spacedBy(AppSpace.xs)) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (state.readingPhoto) {
+                    CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = AppTheme.colors.accent)
+                } else {
+                    Icon(AppIcons.Sparkle, null, tint = AppTheme.colors.accentText, modifier = Modifier.size(16.dp))
+                }
+                Text(
+                    stringResource(if (state.readingPhoto) R.string.reading_photo else R.string.filled_from_photo),
+                    style = AppTheme.type.caption,
+                    color = AppTheme.colors.inkMuted,
+                )
+            }
+            val query = state.photoSearchQuery
+            if (!state.readingPhoto && query != null) {
+                TextAction(stringResource(R.string.find_online), { onFindOnline(query) })
+            }
+        }
+    }
+}
+
 @Composable
 private fun PhotoRow(urls: List<String>, uploading: Boolean, onPicked: (android.net.Uri) -> Unit, onRemove: (String) -> Unit) {
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> uri?.let(onPicked) }

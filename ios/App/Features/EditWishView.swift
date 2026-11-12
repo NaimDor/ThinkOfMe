@@ -12,6 +12,12 @@ final class EditWishModel {
     let isNew: Bool
     var draft = WishDraft()
     private(set) var uploadingPhoto = false
+    /// The photo is being read for product details.
+    private(set) var readingPhoto = false
+    /// Some fields were filled in from the photo.
+    private(set) var filledFromPhoto = false
+    /// A web search that should find the photographed product, when no link is known.
+    private(set) var photoSearchQuery: String?
     private(set) var circles: [GiftCircle] = []
     private(set) var unfurling = false
     private(set) var unfurlFailed = false
@@ -59,6 +65,7 @@ final class EditWishModel {
         defer { uploadingPhoto = false }
         guard let data = try? await item.loadTransferable(type: Data.self),
               let jpeg = Self.encode(data) else { failed = true; return }
+        if draft.needsDetails && !readingPhoto { Task { await readPhoto(jpeg) } }
         do {
             let url = try await backend.uploadPhoto(jpeg, wishId: wishId)
             draft.imageURLs.insert(url, at: 0)
@@ -66,6 +73,23 @@ final class EditWishModel {
             report(error, "uploadPhoto")
             failed = true
         }
+    }
+
+    private func readPhoto(_ jpeg: Data) async {
+        readingPhoto = true
+        defer { readingPhoto = false }
+        let locale = Locale.current.identifier
+        let details: PhotoDetails
+        do { details = try await backend.analyzePhoto(jpeg, locale: locale) } catch {
+            report(error, "analyzePhoto")
+            return
+        }
+        guard details.isProduct else { return }
+        let merged = draft.merging(details)
+        filledFromPhoto = merged != draft
+        draft = merged
+        photoSearchQuery = draft.url.isEmpty ? details.searchQuery : nil
+        if draft.url.hasPrefix("http"), draft.imageURLs.count <= 1 { await unfurl() }
     }
 
     func removePhoto(_ url: URL) { draft.imageURLs.removeAll { $0 == url } }
@@ -124,6 +148,7 @@ struct EditWishView: View {
                         Text(L(model.unfurling ? "fetching_link" : "link_failed")).textStyle(.caption).foregroundStyle(AppColor.inkMuted)
                     }
                     PhotoRow(model: model)
+                    PhotoReadingStatus(model: model)
 
                     HStack(spacing: Space.xs) {
                         ChoiceChip(L("field_kind_product"), systemImage: "gift", isSelected: model.draft.kind == .product) { model.draft.kind = .product }
@@ -280,3 +305,33 @@ private struct PhotoRow: View {
         .scrollIndicators(.hidden)
     }
 }
+
+/// "Reading the photo…" while it works, then what it filled in and a way to find the product online.
+private struct PhotoReadingStatus: View {
+    let model: EditWishModel
+    @Environment(\.openURL) private var openURL
+
+    var body: some View {
+        if model.readingPhoto || model.filledFromPhoto || model.photoSearchQuery != nil {
+            VStack(alignment: .leading, spacing: Space.xs) {
+                HStack(spacing: 8) {
+                    if model.readingPhoto {
+                        ProgressView().controlSize(.small)
+                    } else {
+                        Image(systemName: "sparkles").foregroundStyle(AppColor.accentText)
+                    }
+                    Text(L(model.readingPhoto ? "reading_photo" : "filled_from_photo"))
+                        .textStyle(.caption).foregroundStyle(AppColor.inkMuted)
+                }
+                if !model.readingPhoto, let query = model.photoSearchQuery,
+                   let url = URL(string: "https://www.google.com/search?q=" + (query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")) {
+                    Button(L("find_online")) { openURL(url) }
+                        .textStyle(.callout).fontWeight(.semibold).foregroundStyle(AppColor.accentText)
+                }
+            }
+            .transition(.opacity)
+            .animation(.easeOut(duration: 0.2), value: model.readingPhoto)
+        }
+    }
+}
+

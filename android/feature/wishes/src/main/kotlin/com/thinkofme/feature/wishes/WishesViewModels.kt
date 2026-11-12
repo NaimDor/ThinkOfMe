@@ -166,6 +166,12 @@ data class EditWishUiState(
     val unfurling: Boolean = false,
     val unfurlFailed: Boolean = false,
     val uploadingPhoto: Boolean = false,
+    /** The photo is being read for product details. */
+    val readingPhoto: Boolean = false,
+    /** Some fields were filled in from the photo. */
+    val filledFromPhoto: Boolean = false,
+    /** A web search that should find the photographed product, when no link is known. */
+    val photoSearchQuery: String? = null,
     val saving: Boolean = false,
     val saved: Boolean = false,
     val error: Boolean = false,
@@ -243,9 +249,10 @@ class EditWishViewModel @Inject constructor(
         }
     }
 
-    /** Adds a photo (already downscaled to a JPEG) to the wish. */
+    /** Adds a photo (already downscaled to a JPEG) to the wish, and reads details from it. */
     fun addPhoto(jpeg: ByteArray) {
         if (_state.value.draft.imageUrls.size >= 8) return
+        if (needsDetails(_state.value.draft) && !_state.value.readingPhoto) readPhoto(jpeg)
         viewModelScope.launch {
             _state.update { it.copy(uploadingPhoto = true, error = false) }
             val url = runCatching { wishes.uploadPhoto(wishId, jpeg) }.getOrNull()
@@ -253,6 +260,27 @@ class EditWishViewModel @Inject constructor(
                 if (url == null) s.copy(uploadingPhoto = false, error = true)
                 else s.copy(uploadingPhoto = false, draft = s.draft.copy(imageUrls = listOf(url) + s.draft.imageUrls))
             }
+        }
+    }
+
+    private fun readPhoto(jpeg: ByteArray) {
+        viewModelScope.launch {
+            _state.update { it.copy(readingPhoto = true) }
+            val details = runCatching { wishes.analyzePhoto(jpeg, java.util.Locale.getDefault().toLanguageTag()) }.getOrNull()
+            _state.update { s ->
+                if (details == null || !details.isProduct) {
+                    s.copy(readingPhoto = false)
+                } else {
+                    val merged = mergePhotoDetails(s.draft, details)
+                    s.copy(
+                        readingPhoto = false,
+                        filledFromPhoto = merged != s.draft,
+                        photoSearchQuery = details.searchQuery.takeIf { merged.url.isBlank() },
+                        draft = merged,
+                    )
+                }
+            }
+            if (_state.value.draft.url.startsWith("http") && _state.value.draft.imageUrls.size <= 1) unfurl()
         }
     }
 
@@ -273,6 +301,24 @@ class EditWishViewModel @Inject constructor(
             id == ALL_CIRCLES -> if (ALL_CIRCLES in current) emptyList() else listOf(ALL_CIRCLES)
             id in current -> current - id
             else -> current - ALL_CIRCLES + id
+        }
+
+        /** Only spend a photo read when there is something left to fill in. */
+        fun needsDetails(draft: WishDraft): Boolean =
+            draft.title.isBlank() || draft.priceText.isBlank() || draft.store.isBlank()
+
+        /** Fills empty fields from what was read off the photo. Anything the user typed wins. */
+        fun mergePhotoDetails(draft: WishDraft, details: com.thinkofme.core.data.PhotoDetails): WishDraft {
+            val title = details.title ?: listOfNotNull(details.brand, details.model).joinToString(" ").ifBlank { null }
+            val takePrice = draft.priceText.isBlank() && details.priceAmount != null
+            return draft.copy(
+                title = draft.title.ifBlank { title.orEmpty() },
+                priceText = if (takePrice) formatAmount(details.priceAmount!!) else draft.priceText,
+                currency = if (takePrice) details.priceCurrency ?: draft.currency else draft.currency,
+                store = draft.store.ifBlank { details.store.orEmpty() },
+                url = draft.url.ifBlank { details.url.orEmpty() },
+                note = draft.note.ifBlank { details.note.orEmpty() },
+            )
         }
 
         private val urlRegex = Regex("""https?://\S+""")

@@ -234,3 +234,42 @@ public struct LinkPreview: Sendable {
         self.url = url; self.title = title; self.imageURLs = imageURLs; self.siteName = siteName; self.price = price
     }
 }
+
+/// What could be read from a wish photo (product, price tag, store screenshot). Every field is optional.
+public struct PhotoDetails: Equatable, Sendable {
+    public var isProduct: Bool
+    public var title: String?
+    public var brand: String?
+    public var model: String?
+    public var store: String?
+    public var price: Money?
+    public var url: URL?
+    public var note: String?
+    public var searchQuery: String?
+
+    public init(isProduct: Bool, title: String? = nil, brand: String? = nil, model: String? = nil, store: String? = nil,
+                price: Money? = nil, url: URL? = nil, note: String? = nil, searchQuery: String? = nil) {
+        self.isProduct = isProduct; self.title = title; self.brand = brand; self.model = model; self.store = store
+        self.price = price; self.url = url; self.note = note; self.searchQuery = searchQuery
+    }
+}
+
+extension WishDraft {
+    /// Only spend a photo read when there is something left to fill in.
+    public var needsDetails: Bool { title.isEmpty || priceText.isEmpty || store.isEmpty }
+
+    /// Fills empty fields from what was read off a photo. Anything the user typed wins.
+    public func merging(_ details: PhotoDetails) -> WishDraft {
+        var draft = self
+        let fallbackTitle = [details.brand, details.model].compactMap { $0 }.joined(separator: " ")
+        if draft.title.isEmpty { draft.title = details.title ?? fallbackTitle }
+        if draft.priceText.isEmpty, let price = details.price {
+            draft.priceText = WishDraft.format(price.amount)
+            draft.currency = price.currency
+        }
+        if draft.store.isEmpty { draft.store = details.store ?? "" }
+        if draft.url.isEmpty { draft.url = details.url?.absoluteString ?? "" }
+        if draft.note.isEmpty { draft.note = details.note ?? "" }
+        return draft
+    }
+}

@@ -27,4 +27,27 @@ class EditWishLogicTest {
         assertEquals("349", EditWishViewModel.formatAmount(349.0))
         assertEquals("12.50", EditWishViewModel.formatAmount(12.5))
     }
+
+    @Test
+    fun `photo details fill only empty fields`() {
+        val draft = com.thinkofme.core.model.WishDraft(title = "My own title", currency = "USD")
+        val details = com.thinkofme.core.data.PhotoDetails(
+            isProduct = true, title = "Sony WH-1000XM6", store = "KSP", priceAmount = 1299.0, priceCurrency = "ILS",
+            note = "Black", searchQuery = "sony wh-1000xm6",
+        )
+        val merged = EditWishViewModel.mergePhotoDetails(draft, details)
+        assertEquals("My own title", merged.title)
+        assertEquals("1299", merged.priceText)
+        assertEquals("ILS", merged.currency)
+        assertEquals("KSP", merged.store)
+        assertEquals("Black", merged.note)
+        assertEquals("", merged.url)
+    }
+
+    @Test
+    fun `brand and model stand in for a missing title`() {
+        val details = com.thinkofme.core.data.PhotoDetails(isProduct = true, brand = "Hario", model = "V60")
+        assertEquals("Hario V60", EditWishViewModel.mergePhotoDetails(com.thinkofme.core.model.WishDraft(), details).title)
+        assertEquals(false, EditWishViewModel.needsDetails(com.thinkofme.core.model.WishDraft(title = "a", priceText = "1", store = "b")))
+    }
 }

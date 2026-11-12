@@ -21,6 +21,7 @@ import com.thinkofme.core.data.ClaimRepository
 import com.thinkofme.core.data.Invite
 import com.thinkofme.core.data.InvitePreview
 import com.thinkofme.core.data.LinkPreview
+import com.thinkofme.core.data.PhotoDetails
 import com.thinkofme.core.data.OccasionRepository
 import com.thinkofme.core.data.ProfileRepository
 import com.thinkofme.core.data.WishRepository
@@ -393,6 +394,25 @@ class FirebaseWishRepository @Inject constructor(private val session: FirebaseSe
     }
 
     @Suppress("UNCHECKED_CAST")
+    override suspend fun analyzePhoto(jpeg: ByteArray, locale: String): PhotoDetails {
+        val image = android.util.Base64.encodeToString(jpeg, android.util.Base64.NO_WRAP)
+        val data = functions().getHttpsCallable("analyzePhoto").call(mapOf("image" to image, "locale" to locale)).await()
+            .getData() as? Map<*, *> ?: emptyMap<String, Any?>()
+        fun text(key: String) = (data[key] as? String)?.takeIf { it.isNotBlank() }
+        return PhotoDetails(
+            isProduct = data["isProduct"] as? Boolean ?: false,
+            title = text("title"),
+            brand = text("brand"),
+            model = text("model"),
+            store = text("store"),
+            priceAmount = (data["priceAmount"] as? Number)?.toDouble(),
+            priceCurrency = text("priceCurrency"),
+            url = text("url"),
+            note = text("note"),
+            searchQuery = text("searchQuery"),
+        )
+    }
+
     override suspend fun unfurl(url: String): LinkPreview {
         val data = functions().getHttpsCallable("unfurlLink").call(mapOf("url" to url)).await().getData() as? Map<String, Any?> ?: emptyMap()
         val price = data["price"] as? Map<String, Any?>

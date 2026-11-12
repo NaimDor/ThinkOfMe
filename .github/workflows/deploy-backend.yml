@@ -70,6 +70,29 @@ jobs:
             jq --arg site "$SITE" '.hosting.site = $site' firebase.json > firebase.tmp && mv firebase.tmp firebase.json
           fi
 
+      - name: Store the photo-reading AI key in Secret Manager
+        env:
+          PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          # The analyzePhoto function reads ANTHROPIC_API_KEY from Secret Manager. Without the
+          # GitHub secret a placeholder is stored, so deploys work and the feature stays off.
+          printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
+          gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
+          value="${ANTHROPIC_API_KEY:-not-configured}"
+          if ! gcloud secrets describe ANTHROPIC_API_KEY --project "$PROJECT" --format=none 2>/dev/null; then
+            gcloud secrets create ANTHROPIC_API_KEY --project "$PROJECT" --replication-policy=automatic --quiet --format=none
+          fi
+          current=$(gcloud secrets versions access latest --secret ANTHROPIC_API_KEY --project "$PROJECT" 2>/dev/null || true)
+          if [ "$current" != "$value" ]; then
+            printf '%s' "$value" | gcloud secrets versions add ANTHROPIC_API_KEY --project "$PROJECT" --data-file=- --quiet --format=none
+            echo "AI key updated."
+          else
+            echo "AI key unchanged."
+          fi
+          [ -n "$ANTHROPIC_API_KEY" ] || echo "::warning::No ANTHROPIC_API_KEY secret: reading wish details from photos is off."
+
       - name: Deploy
         env:
           PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
@@ -91,7 +114,7 @@ jobs:
           # request through. firebase deploy only sets this when it creates a function, so
           # apply it on every deploy.
           gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
-          for fn in createinvite previewinvite redeeminvite leavecircle removemember unfurllink deleteaccount; do
+          for fn in createinvite previewinvite redeeminvite leavecircle removemember unfurllink deleteaccount analyzephoto; do
             gcloud run services add-iam-policy-binding "$fn" --region europe-west1 --project "$PROJECT" \
               --member=allUsers --role=roles/run.invoker --quiet --format=none
             echo "$fn: public invoker set"

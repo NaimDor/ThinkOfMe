@@ -6,6 +6,7 @@ import com.thinkofme.core.data.ClaimRepository
 import com.thinkofme.core.data.Invite
 import com.thinkofme.core.data.InvitePreview
 import com.thinkofme.core.data.LinkPreview
+import com.thinkofme.core.data.PhotoDetails
 import com.thinkofme.core.data.OccasionRepository
 import com.thinkofme.core.data.ProfileRepository
 import com.thinkofme.core.data.WishRepository
@@ -235,6 +236,20 @@ class DemoWishRepository @Inject constructor(
     override suspend fun delete(wishId: String) {
         store.wishes.update { list -> list.filterNot { it.id == wishId } }
         store.claims.update { list -> list.filterNot { it.wishId == wishId } }
+    }
+
+    override suspend fun analyzePhoto(jpeg: ByteArray, locale: String): PhotoDetails {
+        delay(1_200)
+        return PhotoDetails(
+            isProduct = true,
+            title = "Ceramic pour-over coffee set",
+            brand = "Hario",
+            store = "Kitchen & Co.",
+            priceAmount = 189.0,
+            priceCurrency = "ILS",
+            note = "White, 2-cup size",
+            searchQuery = "Hario ceramic pour-over set white 2 cup",
+        )
     }
 
     override suspend fun unfurl(url: String): LinkPreview {

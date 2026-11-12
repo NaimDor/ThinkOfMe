@@ -110,6 +110,9 @@
     <string name="field_kind_product">منتج</string>
     <string name="field_kind_idea">فكرة أو تجربة</string>
     <string name="fetching_link">جارٍ قراءة الرابط…</string>
+    <string name="reading_photo">جارٍ قراءة الصورة…</string>
+    <string name="filled_from_photo">عبّأنا التفاصيل من صورتك. تحقّق منها.</string>
+    <string name="find_online">ابحث عنه على الإنترنت</string>
     <string name="link_failed">تعذّرت قراءة الصفحة. أدخل التفاصيل بنفسك.</string>
     <string name="visible_all">كل دوائري</string>
     <string name="visible_to">من يمكنه رؤيتها</string>

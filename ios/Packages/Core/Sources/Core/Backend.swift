@@ -55,6 +55,8 @@ public protocol Backend: AnyObject {
     func markReceived(_ wishId: String) async throws
     func deleteWish(_ wishId: String) async throws
     func unfurl(_ url: URL) async throws -> LinkPreview
+    /// Reads product name, store, price and more from a JPEG photo.
+    func analyzePhoto(_ jpeg: Data, locale: String) async throws -> PhotoDetails
 
     // Claims (never returned for your own wishes)
     func claims(onWishesOf personId: String) -> AsyncStream<[String: [Claim]]>

@@ -75,6 +75,20 @@ data class LinkPreview(
     val priceCurrency: String?,
 )
 
+/** What could be read from a wish photo; every field is optional. */
+data class PhotoDetails(
+    val isProduct: Boolean,
+    val title: String? = null,
+    val brand: String? = null,
+    val model: String? = null,
+    val store: String? = null,
+    val priceAmount: Double? = null,
+    val priceCurrency: String? = null,
+    val url: String? = null,
+    val note: String? = null,
+    val searchQuery: String? = null,
+)
+
 interface WishRepository {
     fun myWishes(): Flow<List<Wish>>
 
@@ -92,6 +106,9 @@ interface WishRepository {
     suspend fun markReceived(wishId: String)
     suspend fun delete(wishId: String)
     suspend fun unfurl(url: String): LinkPreview
+
+    /** Reads product name, store, price and more from a photo (JPEG). */
+    suspend fun analyzePhoto(jpeg: ByteArray, locale: String): PhotoDetails
 }
 
 interface ClaimRepository {

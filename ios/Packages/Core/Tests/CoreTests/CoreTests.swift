@@ -102,3 +102,27 @@ import Testing
         #expect(next >= Calendar.current.startOfDay(for: .now))
     }
 }
+
+@Suite struct PhotoDetailsTests {
+    @Test func fillsOnlyEmptyFields() {
+        var draft = WishDraft()
+        draft.title = "My own title"
+        let details = PhotoDetails(isProduct: true, title: "Sony WH-1000XM6", store: "KSP",
+                                   price: Money(amount: 1299, currency: "ILS"), note: "Black", searchQuery: "sony wh-1000xm6")
+        let merged = draft.merging(details)
+        #expect(merged.title == "My own title")
+        #expect(merged.priceText == "1299")
+        #expect(merged.currency == "ILS")
+        #expect(merged.store == "KSP")
+        #expect(merged.note == "Black")
+        #expect(merged.url.isEmpty)
+    }
+
+    @Test func brandAndModelStandInForTitle() {
+        let merged = WishDraft().merging(PhotoDetails(isProduct: true, brand: "Hario", model: "V60"))
+        #expect(merged.title == "Hario V60")
+        var full = WishDraft()
+        full.title = "a"; full.priceText = "1"; full.store = "b"
+        #expect(!full.needsDetails)
+    }
+}

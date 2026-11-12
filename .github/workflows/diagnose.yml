@@ -31,7 +31,7 @@ jobs:
         run: |
           # A reachable callable answers an unauthenticated call with 401 JSON;
           # 403 HTML means the function doesn't allow public invocation.
-          for fn in createInvite previewInvite redeemInvite leaveCircle removeMember unfurlLink deleteAccount; do
+          for fn in createInvite previewInvite redeemInvite leaveCircle removeMember unfurlLink deleteAccount analyzePhoto; do
             body=$(curl -s -o /tmp/out -w '%{http_code}' -X POST -H 'Content-Type: application/json' \
               -d '{"data":{}}' "https://europe-west1-$PROJECT.cloudfunctions.net/$fn")
             echo "$fn -> HTTP $body $(head -c 120 /tmp/out | tr '\n' ' ')"

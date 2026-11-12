@@ -394,6 +394,20 @@ final class FirebaseBackend: Backend {
         try await db.collection("wishes").document(wishId).delete()
     }
 
+    func analyzePhoto(_ jpeg: Data, locale: String) async throws -> PhotoDetails {
+        let data = try await call("analyzePhoto", ["image": jpeg.base64EncodedString(), "locale": locale])
+        func text(_ key: String) -> String? { (data[key] as? String).flatMap { $0.isEmpty ? nil : $0 } }
+        let price: Money? = {
+            guard let amount = (data["priceAmount"] as? NSNumber)?.doubleValue, let currency = text("priceCurrency") else { return nil }
+            return Money(amount: amount, currency: currency)
+        }()
+        return PhotoDetails(
+            isProduct: data["isProduct"] as? Bool ?? false,
+            title: text("title"), brand: text("brand"), model: text("model"), store: text("store"),
+            price: price, url: text("url").flatMap(URL.init(string:)), note: text("note"), searchQuery: text("searchQuery")
+        )
+    }
+
     func unfurl(_ url: URL) async throws -> LinkPreview {
         let data = try await call("unfurlLink", ["url": url.absoluteString])
         let price = data["price"] as? [String: Any]

@@ -104,6 +104,9 @@
     <string name="field_kind_product">Product</string>
     <string name="field_kind_idea">Idea or experience</string>
     <string name="fetching_link">Looking up the link…</string>
+    <string name="reading_photo">Reading the photo…</string>
+    <string name="filled_from_photo">Filled in from your photo. Check the details.</string>
+    <string name="find_online">Find it online</string>
     <string name="link_failed">Couldn\'t read that page. Fill in the details yourself.</string>
     <string name="visible_all">All my circles</string>
     <string name="visible_to">Who can see it</string>
