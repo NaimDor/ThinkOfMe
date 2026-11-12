@@ -12,7 +12,7 @@ Status legend: **[me]** = code/config I do, **[you]** = needs your accounts, dec
 | # | Item | Who |
 |---|---|---|
 | A1 | **Real-world test round** on both phones with real accounts; fix what breaks (iOS has only compiled in CI, never run against the live backend) | you test, me fix |
-| A2 | **Web address** (free Firebase Hosting site): invite pages, privacy/terms/support, app-link files are built; waiting for the site name to switch the apps over, then `app-ads.txt` | you pick site name, me switch |
+| A2 | **Web address** `thinkofme.web.app` (free Firebase Hosting): invite pages, privacy/terms/support, app-link files; then `app-ads.txt` | set repo variables, deploy |
 | A3 | ~~Tapping a notification opens the right screen~~ **Done** | me |
 | A4 | **Firebase App Check**: apps send tokens (Play Integrity / DeviceCheck); you register the apps in the console, then I switch on enforcement | you register, me enforce |
 | A5 | Privacy policy, terms, support pages **drafted** (`backend/hosting`); still: store privacy forms, AdMob GDPR message, `SUPPORT_EMAIL` variable | you publish / configure |

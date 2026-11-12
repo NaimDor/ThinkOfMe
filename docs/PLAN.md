@@ -333,7 +333,7 @@ activity/{circleId}/items/{id}       # claim-free feed, written only by function
 - **iOS**: Feature modules with `@Observable` view-models, repository protocols
   in Core (Firebase implementations + in-memory fakes for previews/tests),
   `NavigationStack` router per tab, deep links via Universal Links
-  (`thinkofme.app/i/{code}`).
+  (`thinkofme.web.app/i/{code}`).
 - **Android**: MVVM + UDF (`StateFlow<UiState>`), repositories in `core:data`
   exposing `Flow`s from Firestore snapshot listeners, Hilt DI, type-safe
   navigation, App Links for invites.

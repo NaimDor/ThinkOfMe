@@ -123,7 +123,7 @@ public final class DemoBackend: Backend {
     }
     public func createInvite(circleId: String) async throws -> Invite {
         try await Task.sleep(for: .milliseconds(300))
-        return Invite(code: "H7K2PQ9M", url: URL(string: "https://thinkofme.app/i/H7K2PQ9M")!, expiresAt: .now.addingTimeInterval(7 * 86_400))
+        return Invite(code: "H7K2PQ9M", url: URL(string: "https://thinkofme.web.app/i/H7K2PQ9M")!, expiresAt: .now.addingTimeInterval(7 * 86_400))
     }
     public func previewInvite(code: String) async throws -> InvitePreview {
         InvitePreview(circleName: "Friends", kind: .group, inviterName: "Noa", memberCount: 4)

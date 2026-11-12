@@ -166,7 +166,7 @@ class DemoCircleRepository @Inject constructor(private val store: DemoStore) : C
 
     override suspend fun createInvite(circleId: String): Invite {
         delay(300)
-        return Invite("H7K2PQ9M", "https://thinkofme.app/i/H7K2PQ9M", System.currentTimeMillis() + 7 * 86_400_000L)
+        return Invite("H7K2PQ9M", "https://thinkofme.web.app/i/H7K2PQ9M", System.currentTimeMillis() + 7 * 86_400_000L)
     }
 
     override suspend fun previewInvite(code: String) = InvitePreview("Friends", CircleKind.GROUP, "Noa", 4)
