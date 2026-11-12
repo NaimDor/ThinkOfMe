@@ -59,7 +59,11 @@ export const sendReminders = onSchedule({ schedule: "every 60 minutes", region: 
 
       const logId = `${occasion.id}_${recipientId}_${formatIsoDate(local)}`;
       try {
-        await db.collection("reminderLog").doc(logId).create({ createdAt: FieldValue.serverTimestamp(), offset });
+        await db.collection("reminderLog").doc(logId).create({
+          createdAt: FieldValue.serverTimestamp(),
+          expiresAt: new Date(Date.now() + 60 * 86_400_000), // TTL policy deletes it
+          offset,
+        });
       } catch {
         continue; // already sent today
       }

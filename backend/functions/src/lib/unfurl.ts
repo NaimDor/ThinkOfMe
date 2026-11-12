@@ -1,6 +1,8 @@
 import { load } from "cheerio";
+import { lookup as lookupCallback, type LookupAddress } from "node:dns";
 import { lookup } from "node:dns/promises";
 import { isIP } from "node:net";
+import { Agent, fetch } from "undici";
 
 /** What we can learn about a product page. Every field is optional. */
 export interface LinkMetadata {
@@ -168,6 +170,30 @@ export async function assertPublicUrl(raw: string): Promise<URL> {
   return url;
 }
 
+/**
+ * Connections go through this agent: it resolves the host itself and refuses
+ * private addresses at connect time. That closes the DNS-rebinding gap where a
+ * host passes the first check and then resolves to an internal address.
+ */
+const pinnedAgent = new Agent({
+  connect: {
+    lookup: (hostname, options, callback) => {
+      lookupCallback(hostname, { ...options, all: true }, (error, addresses) => {
+        if (error) return callback(error, "", 0);
+        const list = (Array.isArray(addresses) ? addresses : []) as LookupAddress[];
+        const safe = list.filter((entry) => !isPrivateAddress(entry.address));
+        if (safe.length === 0 || safe.length !== list.length) {
+          return callback(new UnfurlError("blocked-host"), "", 0);
+        }
+        if ((options as { all?: boolean }).all) return (callback as unknown as (e: null, a: LookupAddress[]) => void)(null, safe);
+        return callback(null, safe[0]!.address, safe[0]!.family);
+      });
+    },
+  },
+  headersTimeout: 8000,
+  bodyTimeout: 8000,
+});
+
 const MAX_BYTES = 1_500_000;
 const USER_AGENT = "Mozilla/5.0 (compatible; ThinkOfMeLinkPreview/1.0)";
 
@@ -176,6 +202,7 @@ export async function unfurl(raw: string): Promise<LinkMetadata> {
   let current = await assertPublicUrl(raw);
   for (let hop = 0; hop < 4; hop++) {
     const response = await fetch(current, {
+      dispatcher: pinnedAgent,
       redirect: "manual",
       signal: AbortSignal.timeout(8000),
       headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml", "accept-language": "en,he;q=0.8,ar;q=0.6,ru;q=0.6" },
@@ -195,7 +222,7 @@ export async function unfurl(raw: string): Promise<LinkMetadata> {
   throw new UnfurlError("too-many-redirects");
 }
 
-async function readLimited(response: Response, maxBytes: number): Promise<string> {
+async function readLimited(response: { body: ReadableStream<Uint8Array> | null }, maxBytes: number): Promise<string> {
   if (!response.body) return "";
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];

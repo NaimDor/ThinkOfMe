@@ -49,6 +49,7 @@ export const sendHolidayReminders = onSchedule({ schedule: "every 60 minutes", r
           holiday: due.holiday.id,
           kind: due.kind,
           createdAt: FieldValue.serverTimestamp(),
+          expiresAt: new Date(Date.now() + 60 * 86_400_000), // TTL policy deletes it
         });
       } catch {
         continue;

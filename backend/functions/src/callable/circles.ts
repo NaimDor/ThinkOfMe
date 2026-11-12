@@ -1,6 +1,6 @@
 import { FieldValue, Timestamp } from "firebase-admin/firestore";
 import { HttpsError, onCall, type CallableRequest } from "firebase-functions/v2/https";
-import { db, REGION } from "../lib/firebase";
+import { db, ENFORCE_APP_CHECK, REGION } from "../lib/firebase";
 import {
   type CircleKind,
   generateInviteCode,
@@ -10,7 +10,7 @@ import {
   normalizeInviteCode,
 } from "../lib/invites";
 
-const callable = { region: REGION, enforceAppCheck: false } as const;
+const callable = { region: REGION, enforceAppCheck: ENFORCE_APP_CHECK } as const;
 
 function requireUid(request: CallableRequest): string {
   const uid = request.auth?.uid;

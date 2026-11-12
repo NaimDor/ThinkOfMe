@@ -1,5 +1,6 @@
 import Core
 import DesignSystem
+import FirebaseAppCheck
 import FirebaseCore
 import FirebaseMessaging
 import GoogleSignIn
@@ -41,6 +42,12 @@ final class AppServices {
     /// Firebase is optional: without GoogleService-Info.plist the app runs on demo data.
     static func configureFirebase() -> Bool {
         guard Bundle.main.path(forResource: "GoogleService-Info", ofType: "plist") != nil else { return false }
+        // App Check proves requests come from this app. Debug builds print a token to register in the console.
+        #if DEBUG
+        AppCheck.setAppCheckProviderFactory(AppCheckDebugProviderFactory())
+        #else
+        AppCheck.setAppCheckProviderFactory(DeviceCheckProviderFactory())
+        #endif
         FirebaseApp.configure()
         return true
     }

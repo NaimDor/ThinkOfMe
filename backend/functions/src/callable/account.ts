@@ -3,7 +3,7 @@ import { getStorage } from "firebase-admin/storage";
 import { logger } from "firebase-functions";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onUserDeleted } from "firebase-functions/v2/identity";
-import { auth, db, REGION } from "../lib/firebase";
+import { auth, db, ENFORCE_APP_CHECK, REGION } from "../lib/firebase";
 import { unfurl, UnfurlError } from "../lib/unfurl";
 
 /**
@@ -47,7 +47,7 @@ export async function purgeUserData(uid: string): Promise<void> {
 }
 
 /** "Delete my account" from settings. Required by App Store and Play policy. */
-export const deleteAccount = onCall({ region: REGION }, async (request) => {
+export const deleteAccount = onCall({ region: REGION, enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Sign in first.");
   await purgeUserData(uid);
@@ -61,7 +61,7 @@ export const onAccountDeleted = onUserDeleted({ region: REGION }, async (event) 
 });
 
 /** Fetch a product page and return title, images and price for a new wish. */
-export const unfurlLink = onCall({ region: REGION, memory: "512MiB", timeoutSeconds: 20 }, async (request) => {
+export const unfurlLink = onCall({ region: REGION, memory: "512MiB", timeoutSeconds: 20, enforceAppCheck: ENFORCE_APP_CHECK }, async (request) => {
   const uid = request.auth?.uid;
   if (!uid) throw new HttpsError("unauthenticated", "Sign in first.");
   const url = request.data?.url;
