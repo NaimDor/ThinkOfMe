@@ -105,6 +105,10 @@
     <string name="field_kind_idea">Идея или впечатление</string>
     <string name="fetching_link">Читаем ссылку…</string>
     <string name="reading_photo">Читаем фото…</string>
+    <string name="scan_looking">Присматриваемся…</string>
+    <string name="scan_brand">Узнаём бренд…</string>
+    <string name="scan_price">Читаем ценник…</string>
+    <string name="scan_store">Ищем магазин…</string>
     <string name="filled_from_photo">Заполнили по фото. Проверьте детали.</string>
     <string name="find_online">Найти в интернете</string>
     <string name="link_failed">Не удалось прочитать страницу. Заполните данные вручную.</string>

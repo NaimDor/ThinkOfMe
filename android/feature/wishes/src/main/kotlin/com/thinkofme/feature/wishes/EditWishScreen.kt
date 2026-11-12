@@ -194,24 +194,21 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 /** "Reading the photo…" while it works, then what it filled in and a way to find the product online. */
 @Composable
 private fun PhotoReadingStatus(state: EditWishUiState, onFindOnline: (String) -> Unit) {
-    AnimatedVisibility(state.readingPhoto || state.filledFromPhoto || state.photoSearchQuery != null) {
+    val jpeg = state.readingPhotoJpeg
+    val photo = jpeg?.let { rememberPhotoBitmap(it) }
+    AnimatedVisibility(state.readingPhoto && photo != null) {
+        if (photo != null) PhotoScanner(photo)
+    }
+    AnimatedVisibility(!state.readingPhoto && (state.filledFromPhoto || state.photoSearchQuery != null)) {
         Column(verticalArrangement = Arrangement.spacedBy(AppSpace.xs)) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                if (state.readingPhoto) {
-                    CircularProgressIndicator(Modifier.size(14.dp), strokeWidth = 2.dp, color = AppTheme.colors.accent)
-                } else {
+            if (state.filledFromPhoto) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(AppIcons.Sparkle, null, tint = AppTheme.colors.accentText, modifier = Modifier.size(16.dp))
+                    Text(stringResource(R.string.filled_from_photo), style = AppTheme.type.caption, color = AppTheme.colors.inkMuted)
                 }
-                Text(
-                    stringResource(if (state.readingPhoto) R.string.reading_photo else R.string.filled_from_photo),
-                    style = AppTheme.type.caption,
-                    color = AppTheme.colors.inkMuted,
-                )
             }
             val query = state.photoSearchQuery
-            if (!state.readingPhoto && query != null) {
-                TextAction(stringResource(R.string.find_online), { onFindOnline(query) })
-            }
+            if (query != null) TextAction(stringResource(R.string.find_online), { onFindOnline(query) })
         }
     }
 }

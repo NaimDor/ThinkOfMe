@@ -14,6 +14,8 @@ final class EditWishModel {
     private(set) var uploadingPhoto = false
     /// The photo is being read for product details.
     private(set) var readingPhoto = false
+    /// The photo being read, shown under the magnifying glass while it works.
+    private(set) var readingPhotoImage: UIImage?
     /// Some fields were filled in from the photo.
     private(set) var filledFromPhoto = false
     /// A web search that should find the photographed product, when no link is known.
@@ -77,7 +79,8 @@ final class EditWishModel {
 
     private func readPhoto(_ jpeg: Data) async {
         readingPhoto = true
-        defer { readingPhoto = false }
+        readingPhotoImage = UIImage(data: jpeg)
+        defer { readingPhoto = false; readingPhotoImage = nil }
         let locale = Locale.current.identifier
         let details: PhotoDetails
         do { details = try await backend.analyzePhoto(jpeg, locale: locale) } catch {
@@ -306,32 +309,101 @@ private struct PhotoRow: View {
     }
 }
 
-/// "Reading the photo…" while it works, then what it filled in and a way to find the product online.
+/// While reading: the photo under a moving magnifying glass. After: what was filled in, and a web search.
 private struct PhotoReadingStatus: View {
     let model: EditWishModel
     @Environment(\.openURL) private var openURL
 
     var body: some View {
-        if model.readingPhoto || model.filledFromPhoto || model.photoSearchQuery != nil {
-            VStack(alignment: .leading, spacing: Space.xs) {
-                HStack(spacing: 8) {
-                    if model.readingPhoto {
-                        ProgressView().controlSize(.small)
-                    } else {
+        VStack(alignment: .leading, spacing: Space.xs) {
+            if model.readingPhoto, let image = model.readingPhotoImage {
+                PhotoScanner(image: image).transition(.opacity.combined(with: .scale(scale: 0.97)))
+            } else {
+                if model.filledFromPhoto {
+                    HStack(spacing: 8) {
                         Image(systemName: "sparkles").foregroundStyle(AppColor.accentText)
+                        Text(L("filled_from_photo")).textStyle(.caption).foregroundStyle(AppColor.inkMuted)
                     }
-                    Text(L(model.readingPhoto ? "reading_photo" : "filled_from_photo"))
-                        .textStyle(.caption).foregroundStyle(AppColor.inkMuted)
                 }
-                if !model.readingPhoto, let query = model.photoSearchQuery,
+                if let query = model.photoSearchQuery,
                    let url = URL(string: "https://www.google.com/search?q=" + (query.addingPercentEncoding(withAllowedCharacters: .urlQueryAllowed) ?? "")) {
                     Button(L("find_online")) { openURL(url) }
                         .textStyle(.callout).fontWeight(.semibold).foregroundStyle(AppColor.accentText)
                 }
             }
-            .transition(.opacity)
-            .animation(.easeOut(duration: 0.2), value: model.readingPhoto)
         }
+        .animation(.easeOut(duration: 0.25), value: model.readingPhoto)
     }
 }
 
+/// The photo with a magnifying glass gliding over it in a figure-8, the lens showing the
+/// photo zoomed in, and a line saying what it is looking for. Still when Reduce Motion is on.
+struct PhotoScanner: View {
+    let image: UIImage
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var step = 0
+    private let steps = ["scan_looking", "scan_brand", "scan_price", "scan_store"]
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: Space.s) {
+            TimelineView(.animation(paused: reduceMotion)) { context in
+                let cycle = 4.2
+                let t = reduceMotion ? 0.12 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: cycle) / cycle
+                GeometryReader { geo in
+                    lensScene(size: geo.size, t: t)
+                }
+            }
+            .frame(height: 190)
+            .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
+
+            HStack(spacing: 8) {
+                Image(systemName: "sparkles").foregroundStyle(AppColor.accentText)
+                Text(L(steps[step]))
+                    .textStyle(.callout).foregroundStyle(AppColor.inkMuted)
+                    .id(step)
+                    .transition(.opacity)
+            }
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(L("reading_photo"))
+        .task {
+            while !Task.isCancelled {
+                try? await Task.sleep(for: .seconds(1.6))
+                withAnimation(.easeInOut(duration: 0.3)) { step = (step + 1) % steps.count }
+            }
+        }
+    }
+
+    private func lensScene(size: CGSize, t: Double) -> some View {
+        let angle = 2 * Double.pi * t
+        let center = CGPoint(x: size.width * (0.5 + 0.30 * sin(angle)), y: size.height * (0.5 + 0.20 * sin(2 * angle)))
+        let r = size.height * 0.26
+        let handleStart = CGPoint(x: center.x + r * 0.72, y: center.y + r * 0.72)
+        let handleEnd = CGPoint(x: center.x + r * 1.32, y: center.y + r * 1.32)
+        return ZStack {
+            photo(size).overlay(Color.black.opacity(0.28))
+            // Soft shadow so the lens floats above the photo.
+            Circle().fill(Color.black.opacity(0.22))
+                .frame(width: r * 2.12, height: r * 2.12)
+                .position(x: center.x + r * 0.10, y: center.y + r * 0.14)
+            // Zoomed photo inside the lens.
+            photo(size)
+                .scaleEffect(1.9, anchor: UnitPoint(x: center.x / size.width, y: center.y / size.height))
+                .mask { Circle().frame(width: r * 2, height: r * 2).position(center) }
+            Path { p in p.move(to: handleStart); p.addLine(to: handleEnd) }
+                .stroke(AppColor.surface, style: StrokeStyle(lineWidth: r * 0.22, lineCap: .round))
+            Path { p in p.move(to: CGPoint(x: handleStart.x + r * 0.18, y: handleStart.y + r * 0.18)); p.addLine(to: handleEnd) }
+                .stroke(AppColor.accent, style: StrokeStyle(lineWidth: r * 0.14, lineCap: .round))
+            Circle().stroke(AppColor.surface, lineWidth: r * 0.13)
+                .frame(width: r * 2, height: r * 2).position(center)
+            Circle().trim(from: 0.555, to: 0.695)
+                .stroke(Color.white.opacity(0.7), style: StrokeStyle(lineWidth: r * 0.07, lineCap: .round))
+                .frame(width: r * 1.4, height: r * 1.4).position(center)
+        }
+        .frame(width: size.width, height: size.height)
+    }
+
+    private func photo(_ size: CGSize) -> some View {
+        Image(uiImage: image).resizable().scaledToFill().frame(width: size.width, height: size.height).clipped()
+    }
+}

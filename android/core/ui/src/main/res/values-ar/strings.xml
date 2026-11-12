@@ -111,6 +111,10 @@
     <string name="field_kind_idea">فكرة أو تجربة</string>
     <string name="fetching_link">جارٍ قراءة الرابط…</string>
     <string name="reading_photo">جارٍ قراءة الصورة…</string>
+    <string name="scan_looking">ننظر عن قرب…</string>
+    <string name="scan_brand">نتعرّف على العلامة التجارية…</string>
+    <string name="scan_price">نقرأ السعر…</string>
+    <string name="scan_store">نبحث عن المتجر…</string>
     <string name="filled_from_photo">عبّأنا التفاصيل من صورتك. تحقّق منها.</string>
     <string name="find_online">ابحث عنه على الإنترنت</string>
     <string name="link_failed">تعذّرت قراءة الصفحة. أدخل التفاصيل بنفسك.</string>

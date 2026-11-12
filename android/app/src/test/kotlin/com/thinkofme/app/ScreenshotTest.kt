@@ -1,5 +1,9 @@
 package com.thinkofme.app
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.unit.dp
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onRoot
@@ -15,6 +19,7 @@ import com.thinkofme.feature.occasions.OccasionsUiState
 import com.thinkofme.feature.wishes.MyListScreen
 import com.thinkofme.feature.wishes.MyListUiState
 import com.thinkofme.feature.wishes.PersonScreen
+import com.thinkofme.feature.wishes.PhotoScanner
 import com.thinkofme.feature.wishes.PersonUiState
 import com.thinkofme.feature.wishes.WishScreen
 import com.thinkofme.feature.wishes.WishUiState
@@ -106,5 +111,22 @@ class ScreenshotTest {
     @Config(qualifiers = "+ar")
     @Test fun datesArabic() = snap("dates_ar") {
         OccasionsScreen(OccasionsUiState(false, overview.upcoming, store.people.value, store.circles.value, store.me, holidays("ar")), {}, {})
+    }
+
+    /** The magnifying glass while a photo is read, on a stand-in "product photo". */
+    @Test fun photoScanner() = snap("photo_scanner") {
+        val bitmap = android.graphics.Bitmap.createBitmap(800, 600, android.graphics.Bitmap.Config.ARGB_8888)
+        android.graphics.Canvas(bitmap).apply {
+            drawColor(android.graphics.Color.rgb(236, 228, 214))
+            val paint = android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG)
+            paint.color = android.graphics.Color.rgb(46, 52, 64); drawRoundRect(250f, 140f, 550f, 470f, 40f, 40f, paint)
+            paint.color = android.graphics.Color.rgb(214, 90, 70); drawCircle(400f, 260f, 70f, paint)
+            paint.color = android.graphics.Color.WHITE; paint.textSize = 44f; drawText("AURA X2", 315f, 410f, paint)
+            paint.color = android.graphics.Color.rgb(250, 210, 80); drawRect(560f, 380f, 720f, 450f, paint)
+            paint.color = android.graphics.Color.BLACK; paint.textSize = 36f; drawText("₪ 349", 585f, 428f, paint)
+        }
+        androidx.compose.foundation.layout.Box(
+            androidx.compose.ui.Modifier.background(com.thinkofme.core.designsystem.theme.AppTheme.colors.canvas).padding(24.dp),
+        ) { PhotoScanner(bitmap.asImageBitmap(), phase = 0.1f) }
     }
 }

@@ -102,6 +102,10 @@
     <string name="field_kind_idea">רעיון או חוויה</string>
     <string name="fetching_link">בודקים את הקישור…</string>
     <string name="reading_photo">קוראים את התמונה…</string>
+    <string name="scan_looking">מסתכלים מקרוב…</string>
+    <string name="scan_brand">מזהים את המותג…</string>
+    <string name="scan_price">קוראים את המחיר…</string>
+    <string name="scan_store">מחפשים את החנות…</string>
     <string name="filled_from_photo">מילאנו פרטים מהתמונה. כדאי לבדוק שהכול נכון.</string>
     <string name="find_online">חיפוש באינטרנט</string>
     <string name="link_failed">לא הצלחנו לקרוא את הדף. אפשר למלא את הפרטים ידנית.</string>

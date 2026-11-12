@@ -168,6 +168,8 @@ data class EditWishUiState(
     val uploadingPhoto: Boolean = false,
     /** The photo is being read for product details. */
     val readingPhoto: Boolean = false,
+    /** The photo being read, shown under the magnifying glass while it works. */
+    val readingPhotoJpeg: ByteArray? = null,
     /** Some fields were filled in from the photo. */
     val filledFromPhoto: Boolean = false,
     /** A web search that should find the photographed product, when no link is known. */
@@ -265,15 +267,16 @@ class EditWishViewModel @Inject constructor(
 
     private fun readPhoto(jpeg: ByteArray) {
         viewModelScope.launch {
-            _state.update { it.copy(readingPhoto = true) }
+            _state.update { it.copy(readingPhoto = true, readingPhotoJpeg = jpeg) }
             val details = runCatching { wishes.analyzePhoto(jpeg, java.util.Locale.getDefault().toLanguageTag()) }.getOrNull()
             _state.update { s ->
                 if (details == null || !details.isProduct) {
-                    s.copy(readingPhoto = false)
+                    s.copy(readingPhoto = false, readingPhotoJpeg = null)
                 } else {
                     val merged = mergePhotoDetails(s.draft, details)
                     s.copy(
                         readingPhoto = false,
+                        readingPhotoJpeg = null,
                         filledFromPhoto = merged != s.draft,
                         photoSearchQuery = details.searchQuery.takeIf { merged.url.isBlank() },
                         draft = merged,
