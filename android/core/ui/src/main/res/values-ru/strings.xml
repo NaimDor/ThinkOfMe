@@ -93,6 +93,7 @@
 
     <string name="new_wish">Новое желание</string>
     <string name="edit_wish">Изменить желание</string>
+    <string name="add_photo">Добавить фото</string>
     <string name="field_link">Ссылка</string>
     <string name="field_link_hint">Вставьте ссылку на товар</string>
     <string name="field_title">Что это?</string>

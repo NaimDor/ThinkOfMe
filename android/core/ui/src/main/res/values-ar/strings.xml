@@ -99,6 +99,7 @@
 
     <string name="new_wish">أمنية جديدة</string>
     <string name="edit_wish">تعديل الأمنية</string>
+    <string name="add_photo">إضافة صورة</string>
     <string name="field_link">الرابط</string>
     <string name="field_link_hint">الصق رابط المنتج</string>
     <string name="field_title">ما هي؟</string>

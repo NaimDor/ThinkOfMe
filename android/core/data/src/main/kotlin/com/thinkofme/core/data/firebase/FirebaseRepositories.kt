@@ -14,6 +14,7 @@ import com.google.firebase.firestore.firestore
 import com.google.firebase.firestore.snapshots
 import com.google.firebase.functions.FirebaseFunctions
 import com.google.firebase.functions.functions
+import com.google.firebase.storage.storage
 import com.thinkofme.core.data.AuthRepository
 import com.thinkofme.core.data.CircleRepository
 import com.thinkofme.core.data.ClaimRepository
@@ -339,9 +340,18 @@ class FirebaseWishRepository @Inject constructor(private val session: FirebaseSe
     override fun wish(wishId: String): Flow<Wish?> =
         wishes.document(wishId).snapshots().map { if (it.exists()) it.toWish() else null }
 
-    override suspend fun save(wishId: String?, draft: WishDraft): String {
+    override fun newWishId(): String = wishes.document().id
+
+    override suspend fun uploadPhoto(wishId: String, jpeg: ByteArray): String {
         val uid = session.requireUid()
-        val ref = wishId?.let { wishes.document(it) } ?: wishes.document()
+        val ref = Firebase.storage.reference.child("users/$uid/wishes/$wishId/${java.util.UUID.randomUUID()}.jpg")
+        ref.putBytes(jpeg, com.google.firebase.storage.StorageMetadata.Builder().setContentType("image/jpeg").build()).await()
+        return ref.downloadUrl.await().toString()
+    }
+
+    override suspend fun save(wishId: String, isNew: Boolean, draft: WishDraft): String {
+        val uid = session.requireUid()
+        val ref = wishes.document(wishId)
         val price = draft.priceText.replace(',', '.').toDoubleOrNull()?.let { mapOf("amount" to it, "currency" to draft.currency) }
         val fields = mutableMapOf<String, Any?>(
             "ownerId" to uid,
@@ -358,7 +368,7 @@ class FirebaseWishRepository @Inject constructor(private val session: FirebaseSe
             "visibleCircleIds" to draft.visibleCircleIds,
             "updatedAt" to FieldValue.serverTimestamp(),
         )
-        if (wishId == null) {
+        if (isNew) {
             fields["viewerIds"] = emptyList<String>()
             fields["sortKey"] = System.currentTimeMillis()
             fields["createdAt"] = FieldValue.serverTimestamp()

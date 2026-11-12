@@ -163,6 +163,7 @@ data class EditWishUiState(
     val isNew: Boolean = true,
     val unfurling: Boolean = false,
     val unfurlFailed: Boolean = false,
+    val uploadingPhoto: Boolean = false,
     val saving: Boolean = false,
     val saved: Boolean = false,
     val error: Boolean = false,
@@ -175,6 +176,9 @@ class EditWishViewModel @Inject constructor(
     circles: CircleRepository,
 ) : ViewModel() {
     private val route = savedState.toRoute<EditWishRoute>()
+
+    /** Stable id for this wish, also for a new one, so photos can be stored under it. */
+    private val wishId: String = route.wishId ?: savedState.get<String>("draftWishId") ?: wishes.newWishId().also { savedState["draftWishId"] = it }
     // New wishes are shared with all of your circles (including future ones) by default.
     private val _state = MutableStateFlow(EditWishUiState(isNew = route.wishId == null, draft = WishDraft(visibleCircleIds = listOf(ALL_CIRCLES))))
     val state: StateFlow<EditWishUiState> = _state.asStateFlow()
@@ -237,12 +241,27 @@ class EditWishViewModel @Inject constructor(
         }
     }
 
+    /** Adds a photo (already downscaled to a JPEG) to the wish. */
+    fun addPhoto(jpeg: ByteArray) {
+        if (_state.value.draft.imageUrls.size >= 8) return
+        viewModelScope.launch {
+            _state.update { it.copy(uploadingPhoto = true, error = false) }
+            val url = runCatching { wishes.uploadPhoto(wishId, jpeg) }.getOrNull()
+            _state.update { s ->
+                if (url == null) s.copy(uploadingPhoto = false, error = true)
+                else s.copy(uploadingPhoto = false, draft = s.draft.copy(imageUrls = listOf(url) + s.draft.imageUrls))
+            }
+        }
+    }
+
+    fun removePhoto(url: String) = update { copy(imageUrls = imageUrls - url) }
+
     fun save() {
         val s = _state.value
         if (!s.draft.isValid || s.saving) return
         viewModelScope.launch {
             _state.update { it.copy(saving = true, error = false) }
-            val ok = runCatching { wishes.save(route.wishId, s.draft) }.isSuccess
+            val ok = runCatching { wishes.save(wishId, isNew = route.wishId == null, draft = s.draft) }.isSuccess
             _state.update { it.copy(saving = false, saved = ok, error = !ok) }
         }
     }

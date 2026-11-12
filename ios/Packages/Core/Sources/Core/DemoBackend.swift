@@ -142,8 +142,17 @@ public final class DemoBackend: Backend {
     }
     public func wish(_ id: String) -> AsyncStream<Wish?> { hub.stream { [unowned self] in wishList.first { $0.id == id } } }
 
-    public func saveWish(id: String?, draft: WishDraft) async throws -> String {
-        let wishId = id ?? UUID().uuidString
+    public func newWishId() -> String { UUID().uuidString }
+
+    /// Demo mode keeps photos on the device.
+    public func uploadPhoto(_ jpeg: Data, wishId: String) async throws -> URL {
+        let url = FileManager.default.temporaryDirectory.appendingPathComponent("\(wishId)-\(UUID().uuidString).jpg")
+        try jpeg.write(to: url)
+        return url
+    }
+
+    public func saveWish(id: String, isNew: Bool, draft: WishDraft) async throws -> String {
+        let wishId = id
         let existing = wishList.first { $0.id == wishId }
         let wish = Wish(
             id: wishId, ownerId: meId, title: draft.title.trimmingCharacters(in: .whitespacesAndNewlines),

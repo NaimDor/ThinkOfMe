@@ -90,6 +90,7 @@
 
     <string name="new_wish">משאלה חדשה</string>
     <string name="edit_wish">עריכת משאלה</string>
+    <string name="add_photo">הוספת תמונה</string>
     <string name="field_link">קישור</string>
     <string name="field_link_hint">הדביקו קישור למוצר</string>
     <string name="field_title">מה זה?</string>

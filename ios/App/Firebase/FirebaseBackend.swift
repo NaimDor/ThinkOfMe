@@ -3,6 +3,7 @@ import DesignSystem
 import FirebaseAuth
 import FirebaseFirestore
 import FirebaseFunctions
+import FirebaseStorage
 import Foundation
 
 /// Production backend on Firebase. Mirrors Android's Firebase repositories and
@@ -335,9 +336,20 @@ final class FirebaseBackend: Backend {
         listen(db.collection("wishes").document(id)) { $0.exists ? Self.wish($0) : nil }
     }
 
-    func saveWish(id: String?, draft: WishDraft) async throws -> String {
+    func newWishId() -> String { db.collection("wishes").document().documentID }
+
+    func uploadPhoto(_ jpeg: Data, wishId: String) async throws -> URL {
         let uid = try requireUid()
-        let ref = id.map { db.collection("wishes").document($0) } ?? db.collection("wishes").document()
+        let ref = Storage.storage().reference(withPath: "users/\(uid)/wishes/\(wishId)/\(UUID().uuidString).jpg")
+        let metadata = StorageMetadata()
+        metadata.contentType = "image/jpeg"
+        _ = try await ref.putDataAsync(jpeg, metadata: metadata)
+        return try await ref.downloadURL()
+    }
+
+    func saveWish(id: String, isNew: Bool, draft: WishDraft) async throws -> String {
+        let uid = try requireUid()
+        let ref = db.collection("wishes").document(id)
         var data: [String: Any] = [
             "ownerId": uid,
             "title": draft.title.trimmingCharacters(in: .whitespacesAndNewlines),
@@ -352,7 +364,7 @@ final class FirebaseBackend: Backend {
             "visibleCircleIds": draft.visibleCircleIds,
             "updatedAt": FieldValue.serverTimestamp(),
         ]
-        if id == nil {
+        if isNew {
             data["status"] = "active"
             data["viewerIds"] = [String]()
             data["sortKey"] = Int(Date.now.timeIntervalSince1970 * 1000)

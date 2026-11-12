@@ -1,4 +1,5 @@
 import { FieldValue } from "firebase-admin/firestore";
+import { getStorage } from "firebase-admin/storage";
 import { logger } from "firebase-functions";
 import { onDocumentWritten } from "firebase-functions/v2/firestore";
 import { db, REGION } from "../lib/firebase";
@@ -41,6 +42,12 @@ export const onWishWritten = onDocumentWritten({ document: "wishes/{wishId}", re
 
   if (!after) {
     if (!before) return;
+    // Photos live under users/{owner}/wishes/{wishId}/.
+    try {
+      await getStorage().bucket().deleteFiles({ prefix: `users/${String(before.ownerId)}/wishes/${wishId}/` });
+    } catch (error) {
+      logger.warn("photo cleanup failed", { wishId, error: String(error) });
+    }
     const claims = await db.collection("claims").where("wishId", "==", wishId).get();
     const ownerName = await displayName(String(before.ownerId));
     await Promise.all(

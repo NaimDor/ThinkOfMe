@@ -31,7 +31,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
@@ -57,6 +61,7 @@ import com.thinkofme.core.ui.priorityLabel
 @Composable
 fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () -> Unit) {
     val draft = state.draft
+    val context = LocalContext.current
     Box(Modifier.fillMaxSize().background(AppTheme.colors.canvas)) {
         Column(Modifier.fillMaxSize().imePadding()) {
             TopBar(
@@ -90,13 +95,12 @@ fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () ->
                         color = AppTheme.colors.inkMuted,
                     )
                 }
-                if (draft.imageUrls.isNotEmpty()) {
-                    LazyRow(horizontalArrangement = Arrangement.spacedBy(AppSpace.xs)) {
-                        items(draft.imageUrls) { url ->
-                            AsyncImage(url, null, contentScale = ContentScale.Crop, modifier = Modifier.size(96.dp).clip(RoundedCornerShape(AppRadius.m)).background(AppTheme.colors.surfaceMuted))
-                        }
-                    }
-                }
+                PhotoRow(
+                    urls = draft.imageUrls,
+                    uploading = state.uploadingPhoto,
+                    onPicked = { uri -> encodePhoto(context, uri)?.let(vm::addPhoto) },
+                    onRemove = vm::removePhoto,
+                )
 
                 Row(horizontalArrangement = Arrangement.spacedBy(AppSpace.xs)) {
                     ChoiceChip(stringResource(R.string.field_kind_product), draft.kind == WishKind.PRODUCT, { vm.update { copy(kind = WishKind.PRODUCT) } }, icon = AppIcons.Gift)
@@ -178,5 +182,45 @@ private fun Section(title: String, content: @Composable () -> Unit) {
     Column(verticalArrangement = Arrangement.spacedBy(AppSpace.xs)) {
         Text(title, style = AppTheme.type.caption.copy(fontWeight = AppTheme.type.bodyStrong.fontWeight), color = AppTheme.colors.inkMuted)
         content()
+    }
+}
+
+/** Photos of the wish: an "add" tile (photo picker) followed by the current images. */
+@Composable
+private fun PhotoRow(urls: List<String>, uploading: Boolean, onPicked: (android.net.Uri) -> Unit, onRemove: (String) -> Unit) {
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { uri -> uri?.let(onPicked) }
+    LazyRow(horizontalArrangement = Arrangement.spacedBy(AppSpace.xs)) {
+        if (urls.size < 8) {
+            item(key = "add") {
+                Box(
+                    Modifier.size(96.dp).clip(RoundedCornerShape(AppRadius.m)).background(AppTheme.colors.surfaceMuted)
+                        .pressable(
+                            onClick = { picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)) },
+                            enabled = !uploading,
+                            onClickLabel = stringResource(R.string.add_photo),
+                        ),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    if (uploading) {
+                        CircularProgressIndicator(Modifier.size(22.dp), strokeWidth = 2.dp, color = AppTheme.colors.accent)
+                    } else {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                            Icon(AppIcons.Photo, null, tint = AppTheme.colors.ink, modifier = Modifier.size(24.dp))
+                            Text(stringResource(R.string.add_photo), style = AppTheme.type.tab, color = AppTheme.colors.ink)
+                        }
+                    }
+                }
+            }
+        }
+        items(urls, key = { it }) { url ->
+            Box {
+                AsyncImage(url, null, contentScale = ContentScale.Crop, modifier = Modifier.size(96.dp).clip(RoundedCornerShape(AppRadius.m)).background(AppTheme.colors.surfaceMuted))
+                Box(
+                    Modifier.align(Alignment.TopEnd).padding(4.dp).size(28.dp).clip(androidx.compose.foundation.shape.CircleShape)
+                        .background(AppTheme.colors.canvas.copy(alpha = 0.85f)).pressable(onClick = { onRemove(url) }, onClickLabel = stringResource(R.string.action_delete)),
+                    contentAlignment = Alignment.Center,
+                ) { Icon(AppIcons.Close, stringResource(R.string.action_delete), tint = AppTheme.colors.ink, modifier = Modifier.size(14.dp)) }
+            }
+        }
     }
 }

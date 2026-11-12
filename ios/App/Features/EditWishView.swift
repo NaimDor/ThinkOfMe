@@ -1,13 +1,17 @@
 import Core
 import DesignSystem
+import PhotosUI
 import SwiftUI
 
 @MainActor
 @Observable
 final class EditWishModel {
     private let backend: any Backend
-    let wishId: String?
+    /// Stable id, also for a new wish, so photos can be stored under it.
+    let wishId: String
+    let isNew: Bool
     var draft = WishDraft()
+    private(set) var uploadingPhoto = false
     private(set) var circles: [GiftCircle] = []
     private(set) var unfurling = false
     private(set) var unfurlFailed = false
@@ -16,14 +20,13 @@ final class EditWishModel {
 
     init(backend: any Backend, wishId: String?, sharedURL: URL? = nil) {
         self.backend = backend
-        self.wishId = wishId
+        self.wishId = wishId ?? backend.newWishId()
+        self.isNew = wishId == nil
         if let sharedURL { draft.url = sharedURL.absoluteString }
     }
 
-    var isNew: Bool { wishId == nil }
-
     func load() async {
-        if let wishId {
+        if !isNew {
             var iterator = backend.wish(wishId).makeAsyncIterator()
             if let wish = await iterator.next() ?? nil { draft = WishDraft(wish: wish) }
         } else if !draft.url.isEmpty {
@@ -49,12 +52,41 @@ final class EditWishModel {
         unfurlFailed = preview.title == nil && preview.imageURLs.isEmpty
     }
 
+    /// Downscales a picked photo to a JPEG and uploads it.
+    func addPhoto(_ item: PhotosPickerItem) async {
+        guard draft.imageURLs.count < 8 else { return }
+        uploadingPhoto = true
+        defer { uploadingPhoto = false }
+        guard let data = try? await item.loadTransferable(type: Data.self),
+              let jpeg = Self.encode(data) else { failed = true; return }
+        do {
+            let url = try await backend.uploadPhoto(jpeg, wishId: wishId)
+            draft.imageURLs.insert(url, at: 0)
+        } catch {
+            failed = true
+        }
+    }
+
+    func removePhoto(_ url: URL) { draft.imageURLs.removeAll { $0 == url } }
+
+    /// Longest side 1600 px, JPEG quality 0.85: sharp on a phone, quick to upload.
+    nonisolated static func encode(_ data: Data, maxSide: CGFloat = 1600) -> Data? {
+        guard let image = UIImage(data: data) else { return nil }
+        let longest = max(image.size.width, image.size.height)
+        let scale = min(1, maxSide / longest)
+        let size = CGSize(width: (image.size.width * scale).rounded(), height: (image.size.height * scale).rounded())
+        let format = UIGraphicsImageRendererFormat.default()
+        format.scale = 1
+        let resized = UIGraphicsImageRenderer(size: size, format: format).image { _ in image.draw(in: CGRect(origin: .zero, size: size)) }
+        return resized.jpegData(compressionQuality: 0.85)
+    }
+
     func save() async -> Bool {
         guard draft.isValid, !saving else { return false }
         saving = true
         defer { saving = false }
         do {
-            _ = try await backend.saveWish(id: wishId, draft: draft)
+            _ = try await backend.saveWish(id: wishId, isNew: isNew, draft: draft)
             return true
         } catch {
             failed = true
@@ -89,18 +121,7 @@ struct EditWishView: View {
                     if model.unfurling || model.unfurlFailed {
                         Text(L(model.unfurling ? "fetching_link" : "link_failed")).textStyle(.caption).foregroundStyle(AppColor.inkMuted)
                     }
-                    if !model.draft.imageURLs.isEmpty {
-                        ScrollView(.horizontal) {
-                            HStack(spacing: Space.xs) {
-                                ForEach(model.draft.imageURLs, id: \.self) { url in
-                                    AsyncImage(url: url) { $0.resizable().scaledToFill() } placeholder: { AppColor.surfaceMuted }
-                                        .frame(width: 96, height: 96)
-                                        .clipShape(RoundedRectangle(cornerRadius: Radius.m, style: .continuous))
-                                }
-                            }
-                        }
-                        .scrollIndicators(.hidden)
-                    }
+                    PhotoRow(model: model)
 
                     HStack(spacing: Space.xs) {
                         ChoiceChip(L("field_kind_product"), systemImage: "gift", isSelected: model.draft.kind == .product) { model.draft.kind = .product }
@@ -208,5 +229,52 @@ struct FlowLayout: Layout {
             rows[rows.count - 1].height = max(rows[rows.count - 1].height, size.height)
         }
         return rows
+    }
+}
+
+/// An "Add photo" tile (system photo picker) followed by the wish's photos.
+private struct PhotoRow: View {
+    @Bindable var model: EditWishModel
+    @State private var picked: PhotosPickerItem?
+
+    var body: some View {
+        ScrollView(.horizontal) {
+            HStack(spacing: Space.xs) {
+                if model.draft.imageURLs.count < 8 {
+                    PhotosPicker(selection: $picked, matching: .images) {
+                        VStack(spacing: 4) {
+                            if model.uploadingPhoto {
+                                ProgressView()
+                            } else {
+                                Image(systemName: "photo.badge.plus").font(.title3)
+                                Text(L("add_photo")).textStyle(.tab)
+                            }
+                        }
+                        .foregroundStyle(AppColor.ink)
+                        .frame(width: 96, height: 96)
+                        .background(AppColor.surfaceMuted, in: RoundedRectangle(cornerRadius: Radius.m, style: .continuous))
+                    }
+                    .disabled(model.uploadingPhoto)
+                    .onChange(of: picked) { _, item in
+                        guard let item else { return }
+                        Task { await model.addPhoto(item); picked = nil }
+                    }
+                }
+                ForEach(model.draft.imageURLs, id: \.self) { url in
+                    AsyncImage(url: url) { $0.resizable().scaledToFill() } placeholder: { AppColor.surfaceMuted }
+                        .frame(width: 96, height: 96)
+                        .clipShape(RoundedRectangle(cornerRadius: Radius.m, style: .continuous))
+                        .overlay(alignment: .topTrailing) {
+                            Button { model.removePhoto(url) } label: {
+                                Image(systemName: "xmark").font(.caption.weight(.bold)).foregroundStyle(AppColor.ink)
+                                    .frame(width: 28, height: 28).background(AppColor.canvas.opacity(0.85), in: Circle())
+                            }
+                            .padding(4)
+                            .accessibilityLabel(L("action_delete"))
+                        }
+                }
+            }
+        }
+        .scrollIndicators(.hidden)
     }
 }

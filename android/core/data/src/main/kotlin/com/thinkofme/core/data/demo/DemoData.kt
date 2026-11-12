@@ -178,7 +178,10 @@ class DemoCircleRepository @Inject constructor(private val store: DemoStore) : C
     }
 }
 
-class DemoWishRepository @Inject constructor(private val store: DemoStore) : WishRepository {
+class DemoWishRepository @Inject constructor(
+    private val store: DemoStore,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+) : WishRepository {
     override fun myWishes(): Flow<List<Wish>> = store.wishes.map { list -> list.filter { it.ownerId == store.me }.sortedByDescending { it.createdAtMillis } }
 
     override fun visibleWishes(): Flow<List<Wish>> = combine(store.wishes, store.circles) { wishes, _ ->
@@ -190,8 +193,17 @@ class DemoWishRepository @Inject constructor(private val store: DemoStore) : Wis
 
     override fun wish(wishId: String): Flow<Wish?> = store.wishes.map { list -> list.firstOrNull { it.id == wishId } }
 
-    override suspend fun save(wishId: String?, draft: WishDraft): String {
-        val id = wishId ?: UUID.randomUUID().toString()
+    override fun newWishId(): String = UUID.randomUUID().toString()
+
+    /** Demo mode keeps photos on the device. */
+    override suspend fun uploadPhoto(wishId: String, jpeg: ByteArray): String {
+        val dir = java.io.File(context.cacheDir, "demo-photos").apply { mkdirs() }
+        val file = java.io.File(dir, "${wishId}_${System.currentTimeMillis()}.jpg").apply { writeBytes(jpeg) }
+        return android.net.Uri.fromFile(file).toString()
+    }
+
+    override suspend fun save(wishId: String, isNew: Boolean, draft: WishDraft): String {
+        val id = wishId
         val existing = store.wishes.value.firstOrNull { it.id == id }
         val wish = Wish(
             id = id,

@@ -93,6 +93,7 @@
     <!-- Edit wish -->
     <string name="new_wish">New wish</string>
     <string name="edit_wish">Edit wish</string>
+    <string name="add_photo">Add photo</string>
     <string name="field_link">Link</string>
     <string name="field_link_hint">Paste a product link</string>
     <string name="field_title">What is it?</string>

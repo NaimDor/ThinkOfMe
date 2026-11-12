@@ -54,6 +54,8 @@ targets:
         product: FirebaseFunctions
       - package: Firebase
         product: FirebaseMessaging
+      - package: Firebase
+        product: FirebaseStorage
       - package: GoogleMobileAds
       - package: GoogleUserMessagingPlatform
       - package: GoogleSignIn

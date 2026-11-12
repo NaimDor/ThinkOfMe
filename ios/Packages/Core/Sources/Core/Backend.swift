@@ -43,7 +43,11 @@ public protocol Backend: AnyObject {
     func visibleWishes() -> AsyncStream<[Wish]>
     func wishes(of personId: String) -> AsyncStream<[Wish]>
     func wish(_ id: String) -> AsyncStream<Wish?>
-    func saveWish(id: String?, draft: WishDraft) async throws -> String
+    /// A fresh id for a wish about to be created (its photos are stored under it).
+    func newWishId() -> String
+    func saveWish(id: String, isNew: Bool, draft: WishDraft) async throws -> String
+    /// Uploads a JPEG for a wish and returns its download URL.
+    func uploadPhoto(_ jpeg: Data, wishId: String) async throws -> URL
     func markReceived(_ wishId: String) async throws
     func deleteWish(_ wishId: String) async throws
     func unfurl(_ url: URL) async throws -> LinkPreview

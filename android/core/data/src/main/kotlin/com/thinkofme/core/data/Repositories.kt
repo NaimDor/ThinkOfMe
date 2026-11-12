@@ -79,7 +79,13 @@ interface WishRepository {
     fun visibleWishes(): Flow<List<Wish>>
     fun wishesOf(personId: String): Flow<List<Wish>>
     fun wish(wishId: String): Flow<Wish?>
-    suspend fun save(wishId: String?, draft: WishDraft): String
+    /** A fresh id for a wish that is about to be created (photos are stored under it). */
+    fun newWishId(): String
+
+    suspend fun save(wishId: String, isNew: Boolean, draft: WishDraft): String
+
+    /** Uploads a JPEG for a wish and returns its download URL. */
+    suspend fun uploadPhoto(wishId: String, jpeg: ByteArray): String
     suspend fun markReceived(wishId: String)
     suspend fun delete(wishId: String)
     suspend fun unfurl(url: String): LinkPreview
