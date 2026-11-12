@@ -309,6 +309,16 @@ final class FirebaseBackend: Backend {
         _ = try await call("leaveCircle", ["circleId": circleId])
     }
 
+    func renameCircle(_ circleId: String, name: String) async throws {
+        try await db.collection("circles").document(circleId).updateData([
+            "name": name.trimmingCharacters(in: .whitespacesAndNewlines), "updatedAt": FieldValue.serverTimestamp(),
+        ])
+    }
+
+    func removeMember(_ userId: String, from circleId: String) async throws {
+        _ = try await call("removeMember", ["circleId": circleId, "userId": userId])
+    }
+
     // MARK: Wishes
 
     func myWishes() -> AsyncStream<[Wish]> {
@@ -430,6 +440,14 @@ final class FirebaseBackend: Backend {
     func release(_ wishId: String) async throws {
         let uid = try requireUid()
         try await db.collection("claims").document("\(wishId)_\(uid)").delete()
+    }
+
+    func setPurchased(_ wishId: String, purchased: Bool) async throws {
+        let uid = try requireUid()
+        try await db.collection("claims").document("\(wishId)_\(uid)").updateData([
+            "status": purchased ? ClaimStatus.purchased.rawValue : ClaimStatus.reserved.rawValue,
+            "updatedAt": FieldValue.serverTimestamp(),
+        ])
     }
 
     // MARK: Occasions

@@ -165,4 +165,13 @@
     <string name="settings_sign_out">Sign out</string>
     <string name="settings_delete_account">Delete account</string>
     <string name="delete_account_body">This permanently deletes your wishes, dates and circles membership. It can\'t be undone.</string>
+    <string name="mark_bought">I already bought it</string>
+    <string name="claim_hint_bought">Bought. Others see it\'s taken. %s never will.</string>
+    <string name="edit_date">Edit date</string>
+    <string name="delete_date_title">Delete this date?</string>
+    <string name="circle_manage">Manage circle</string>
+    <string name="circle_rename">Rename</string>
+    <string name="remove_member">Remove from circle</string>
+    <string name="remove_member_body">%s won\'t see this circle\'s wishes anymore.</string>
+    <string name="leave_circle_body">You\'ll stop seeing this circle\'s wishes, and they\'ll stop seeing yours.</string>
 </resources>

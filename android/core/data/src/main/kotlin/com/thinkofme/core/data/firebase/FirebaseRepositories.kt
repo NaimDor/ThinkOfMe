@@ -311,6 +311,10 @@ class FirebaseCircleRepository @Inject constructor(private val session: Firebase
 
     override suspend fun joinWithInvite(code: String): String = call("redeemInvite", mapOf("code" to code))["circleId"] as String
 
+    override suspend fun removeMember(circleId: String, userId: String) {
+        call("removeMember", mapOf("circleId" to circleId, "userId" to userId))
+    }
+
     override suspend fun leave(circleId: String) {
         call("leaveCircle", mapOf("circleId" to circleId))
     }
@@ -433,6 +437,11 @@ class FirebaseClaimRepository @Inject constructor(private val session: FirebaseS
                 "createdAt" to FieldValue.serverTimestamp(), "updatedAt" to FieldValue.serverTimestamp(),
             ),
         ).await()
+    }
+
+    override suspend fun setPurchased(wishId: String, purchased: Boolean) {
+        claims.document("${wishId}_${session.requireUid()}")
+            .update(mapOf("status" to if (purchased) "purchased" else "reserved", "updatedAt" to FieldValue.serverTimestamp())).await()
     }
 
     override suspend fun release(wishId: String) {

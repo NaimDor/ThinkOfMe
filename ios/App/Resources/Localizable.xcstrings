@@ -639,6 +639,35 @@
         }
       }
     },
+    "circle_manage": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إدارة الدائرة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Manage circle"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ניהול המעגל"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Управление кругом"
+          }
+        }
+      }
+    },
     "circle_name": {
       "extractionState": "manual",
       "localizations": {
@@ -722,6 +751,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Только мы вдвоём"
+          }
+        }
+      }
+    },
+    "circle_rename": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إعادة التسمية"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Rename"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "שינוי שם"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Переименовать"
           }
         }
       }
@@ -838,6 +896,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Я подарю это"
+          }
+        }
+      }
+    },
+    "claim_hint_bought": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تم الشراء. سيرى الآخرون أنها محجوزة، أما %@ فلن يعرف أبدًا."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Bought. Others see it's taken. %@ never will."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "נקנה. האחרים יראו שזה תפוס. %@ לעולם לא."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Куплено. Остальные увидят, что подарок занят. %@ — никогда."
           }
         }
       }
@@ -1425,6 +1512,35 @@
         }
       }
     },
+    "delete_date_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "حذف هذا التاريخ؟"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Delete this date?"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "למחוק את התאריך?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить эту дату?"
+          }
+        }
+      }
+    },
     "delete_wish_body": {
       "extractionState": "manual",
       "localizations": {
@@ -1508,6 +1624,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Демо-режим: примеры данных только на этом устройстве"
+          }
+        }
+      }
+    },
+    "edit_date": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "تعديل التاريخ"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Edit date"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "עריכת תאריך"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Изменить дату"
           }
         }
       }
@@ -2614,6 +2759,35 @@
         }
       }
     },
+    "leave_circle_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لن ترى أمنيات هذه الدائرة بعد الآن، ولن يروا أمنياتك."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "You'll stop seeing this circle's wishes, and they'll stop seeing yours."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "לא תראו יותר את המשאלות במעגל, והם לא יראו את שלכם."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Вы перестанете видеть желания этого круга, а они — ваши."
+          }
+        }
+      }
+    },
     "link_failed": {
       "extractionState": "manual",
       "localizations": {
@@ -2639,6 +2813,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Не удалось прочитать страницу. Заполните данные вручную."
+          }
+        }
+      }
+    },
+    "mark_bought": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "اشتريتها بالفعل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "I already bought it"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "כבר קניתי"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Уже купил(а)"
           }
         }
       }
@@ -3616,6 +3819,64 @@
           "stringUnit": {
             "state": "translated",
             "value": "Получено"
+          }
+        }
+      }
+    },
+    "remove_member": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "إزالة من الدائرة"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Remove from circle"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "הסרה מהמעגל"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Удалить из круга"
+          }
+        }
+      }
+    },
+    "remove_member_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "لن يرى %@ أمنيات الدائرة بعد الآن."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ won't see this circle's wishes anymore."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ לא יראו יותר את המשאלות במעגל."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "%@ больше не увидит желания этого круга."
           }
         }
       }

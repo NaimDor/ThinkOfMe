@@ -160,4 +160,13 @@
     <string name="settings_sign_out">התנתקות</string>
     <string name="settings_delete_account">מחיקת החשבון</string>
     <string name="delete_account_body">הפעולה מוחקת לצמיתות את המשאלות, התאריכים והחברות במעגלים. אי אפשר לבטל אותה.</string>
+    <string name="mark_bought">כבר קניתי</string>
+    <string name="claim_hint_bought">נקנה. האחרים יראו שזה תפוס. %s לעולם לא.</string>
+    <string name="edit_date">עריכת תאריך</string>
+    <string name="delete_date_title">למחוק את התאריך?</string>
+    <string name="circle_manage">ניהול המעגל</string>
+    <string name="circle_rename">שינוי שם</string>
+    <string name="remove_member">הסרה מהמעגל</string>
+    <string name="remove_member_body">%s לא יראו יותר את המשאלות במעגל.</string>
+    <string name="leave_circle_body">לא תראו יותר את המשאלות במעגל, והם לא יראו את שלכם.</string>
 </resources>

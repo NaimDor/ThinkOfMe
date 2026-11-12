@@ -37,6 +37,10 @@ public protocol Backend: AnyObject {
     func previewInvite(code: String) async throws -> InvitePreview
     func joinWithInvite(code: String) async throws -> String
     func leaveCircle(_ circleId: String) async throws
+    /// Admins only.
+    func renameCircle(_ circleId: String, name: String) async throws
+    /// Admins only; the owner can't be removed.
+    func removeMember(_ userId: String, from circleId: String) async throws
 
     // Wishes
     func myWishes() -> AsyncStream<[Wish]>
@@ -57,6 +61,8 @@ public protocol Backend: AnyObject {
     func myClaims() -> AsyncStream<[Claim]>
     func claim(_ wish: Wish) async throws
     func release(_ wishId: String) async throws
+    /// "Planning to buy" → "bought" (and back).
+    func setPurchased(_ wishId: String, purchased: Bool) async throws
 
     // Occasions
     func occasions() -> AsyncStream<[Occasion]>

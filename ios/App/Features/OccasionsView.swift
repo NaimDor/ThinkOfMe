@@ -43,6 +43,7 @@ struct OccasionsView: View {
     @State var model: OccasionsModel
     var openPerson: (String) -> Void
     @State private var adding = false
+    @State private var editing: Occasion?
 
     var body: some View {
         List {
@@ -54,7 +55,10 @@ struct OccasionsView: View {
                 .listRowSeparator(.hidden)
             }
             ForEach(model.upcoming) { upcoming in
-                Button { upcoming.person.map { openPerson($0.id) } } label: {
+                Button {
+                    // Your own dates open for editing; others' open the person's list.
+                    if upcoming.occasion.ownerId == model.meId { editing = upcoming.occasion } else { upcoming.person.map { openPerson($0.id) } }
+                } label: {
                     PersonRow(person: upcoming.person, title: Fmt.occasionTitle(upcoming, meId: model.meId)) {
                         Text(Fmt.shortDate(upcoming.date)).textStyle(.caption).foregroundStyle(AppColor.inkMuted)
                     } trailing: {
@@ -112,6 +116,15 @@ struct OccasionsView: View {
                 Task { await model.save(occasion) }
             }
         }
+        .sheet(item: $editing) { occasion in
+            AddOccasionSheet(meId: model.meId ?? "", people: model.people, circles: model.circles, initial: occasion) { updated in
+                editing = nil
+                Task { await model.save(updated) }
+            } delete: {
+                editing = nil
+                Task { await model.delete(occasion.id) }
+            }
+        }
         .task { await model.observe() }
     }
 }
@@ -132,14 +145,36 @@ struct AddOccasionSheet: View {
     let meId: String
     let people: [String: Person]
     let circles: [GiftCircle]
+    let initial: Occasion?
     var save: (Occasion) -> Void
+    var delete: (() -> Void)?
 
-    @State private var kind: OccasionKind = .birthday
+    @State private var kind: OccasionKind
     @State private var personId: String?
-    @State private var title = ""
-    @State private var date = Date.now
-    @State private var yearly = true
-    @State private var circleIds: [String] = [allCircles]
+    @State private var title: String
+    @State private var date: Date
+    @State private var yearly: Bool
+    @State private var circleIds: [String]
+    @State private var confirmDelete = false
+
+    init(meId: String, people: [String: Person], circles: [GiftCircle], initial: Occasion? = nil,
+         save: @escaping (Occasion) -> Void, delete: (() -> Void)? = nil) {
+        self.meId = meId; self.people = people; self.circles = circles; self.initial = initial
+        self.save = save; self.delete = delete
+        _kind = State(initialValue: initial?.kind ?? .birthday)
+        _personId = State(initialValue: initial?.personId)
+        _title = State(initialValue: initial.map { $0.kind == .birthday ? "" : $0.title } ?? "")
+        _yearly = State(initialValue: initial?.yearly ?? true)
+        _circleIds = State(initialValue: initial?.visibleCircleIds ?? [allCircles])
+        let start: Date = initial.flatMap { o in
+            let calendar = Calendar.current
+            let year = o.year ?? calendar.component(.year, from: .now)
+            let monthStart = calendar.date(from: DateComponents(year: year, month: o.month, day: 1))
+            let days = monthStart.flatMap { calendar.range(of: .day, in: .month, for: $0)?.count } ?? 28
+            return calendar.date(from: DateComponents(year: year, month: o.month, day: min(o.day, days)))
+        } ?? .now
+        _date = State(initialValue: start)
+    }
 
     var body: some View {
         NavigationStack {
@@ -175,6 +210,10 @@ struct AddOccasionSheet: View {
                             }
                         }
                     }
+                    if delete != nil {
+                        AppButton(L("action_delete"), systemImage: "trash", kind: .secondary) { confirmDelete = true }
+                            .padding(.top, Space.s)
+                    }
                 }
                 .padding(Space.l)
             }
@@ -182,7 +221,7 @@ struct AddOccasionSheet: View {
             .safeAreaInset(edge: .bottom) {
                 AppButton(L("action_save")) {
                     let parts = Calendar.current.dateComponents([.year, .month, .day], from: date)
-                    save(Occasion(ownerId: meId, personId: personId ?? meId, kind: kind,
+                    save(Occasion(id: initial?.id ?? "", ownerId: meId, personId: personId ?? meId, kind: kind,
                                   title: kind == .birthday ? "Birthday" : title.trimmingCharacters(in: .whitespaces),
                                   month: parts.month ?? 1, day: parts.day ?? 1, year: parts.year, yearly: yearly,
                                   visibleCircleIds: circleIds))
@@ -191,8 +230,12 @@ struct AddOccasionSheet: View {
                 .padding(Space.l)
                 .background(AppColor.canvas)
             }
-            .navigationTitle(L("add_date"))
+            .navigationTitle(L(initial == nil ? "add_date" : "edit_date"))
             .navigationBarTitleDisplayMode(.inline)
+            .alert(L("delete_date_title"), isPresented: $confirmDelete) {
+                Button(L("action_delete"), role: .destructive) { delete?() }
+                Button(L("action_cancel"), role: .cancel) {}
+            }
         }
     }
 }

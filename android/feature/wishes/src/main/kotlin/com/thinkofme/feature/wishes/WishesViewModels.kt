@@ -128,6 +128,8 @@ class WishViewModel @Inject constructor(
         if (current.myClaim == null) claims.claim(wish) else claims.release(wish.id)
     }
 
+    fun setBought(bought: Boolean) = run { claims.setPurchased(wishId, bought) }
+
     fun markReceived() = run { wishes.markReceived(wishId) }
 
     fun delete(onDeleted: () -> Unit) = run {

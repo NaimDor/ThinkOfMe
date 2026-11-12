@@ -27,8 +27,8 @@ Status legend: **[me]** = code/config I do, **[you]** = needs your accounts, dec
 |---|---|---|
 | B1 | ~~Add your own photo to a wish~~ **Done** | me |
 | B2 | **iOS Share Extension**: share a product page from Safari/any app (Android already has this) | me |
-| B3 | Circle management: remove member, rename, leave on iOS, member roles | me |
-| B4 | Edit/delete dates; "bought" vs "planning to buy" on claims; "I got this" → thank-you | me |
+| B3 | ~~Circle management: rename, remove member, leave (both apps)~~ **Done**; promoting other admins later | me |
+| B4 | ~~Edit/delete dates; "bought" vs "planning to buy" on claims~~ **Done**; "I got this" → thank-you later | me |
 | B5 | ~~Crash reporting on iOS~~ **Done**; analytics events for key flows | me |
 | B6 | Remote Config: ad frequency + kill switch without an app update | me |
 | B7 | ~~Link-preview DNS pinning, TTL cleanup~~ **Done**; rules review pass | me |

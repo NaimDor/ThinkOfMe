@@ -130,6 +130,8 @@ final class WishModel {
         }
     }
 
+    func setBought(_ bought: Bool) async { await run { [backend, wishId] in try await backend.setPurchased(wishId, purchased: bought) } }
+
     func markReceived() async { await run { [backend, wishId] in try await backend.markReceived(wishId) } }
     func delete() async { await run { [backend, wishId] in try await backend.deleteWish(wishId) } }
 
@@ -203,6 +205,14 @@ struct WishDetailView: View {
                         .foregroundStyle(AppColor.ink).padding(.top, Space.xs)
                 }
                 if !model.isMine { hint }
+                if let claim = model.myClaim {
+                    let bought = claim.status == .purchased
+                    ChoiceChip(L("mark_bought"), systemImage: "checkmark", isSelected: bought) {
+                        Task { await model.setBought(!bought) }
+                    }
+                    .padding(.top, Space.xs)
+                    .sensoryFeedback(.selection, trigger: bought)
+                }
             }
             .padding(.horizontal, Space.l)
             .padding(.bottom, 120)
@@ -212,7 +222,9 @@ struct WishDetailView: View {
 
     private var hint: some View {
         let name = model.owner?.displayName ?? ""
-        let text: String = if model.myClaim != nil {
+        let text: String = if model.myClaim?.status == .purchased {
+            L("claim_hint_bought", name)
+        } else if model.myClaim != nil {
             L("claim_hint_mine", name)
         } else if let other = model.otherClaim {
             L("claim_hint_other", other.claimerName, name)

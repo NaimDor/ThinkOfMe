@@ -164,4 +164,13 @@
     <string name="settings_sign_out">Выйти</string>
     <string name="settings_delete_account">Удалить аккаунт</string>
     <string name="delete_account_body">Ваши желания, даты и участие в кругах будут удалены навсегда. Это нельзя отменить.</string>
+    <string name="mark_bought">Уже купил(а)</string>
+    <string name="claim_hint_bought">Куплено. Остальные увидят, что подарок занят. %s — никогда.</string>
+    <string name="edit_date">Изменить дату</string>
+    <string name="delete_date_title">Удалить эту дату?</string>
+    <string name="circle_manage">Управление кругом</string>
+    <string name="circle_rename">Переименовать</string>
+    <string name="remove_member">Удалить из круга</string>
+    <string name="remove_member_body">%s больше не увидит желания этого круга.</string>
+    <string name="leave_circle_body">Вы перестанете видеть желания этого круга, а они — ваши.</string>
 </resources>

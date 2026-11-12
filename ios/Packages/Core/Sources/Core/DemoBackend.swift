@@ -130,6 +130,15 @@ public final class DemoBackend: Backend {
     }
     public func joinWithInvite(code: String) async throws -> String { try await createCircle(name: "Friends", kind: .group) }
     public func leaveCircle(_ circleId: String) async throws { circleList.removeAll { $0.id == circleId }; changed() }
+    public func renameCircle(_ circleId: String, name: String) async throws {
+        if let i = circleList.firstIndex(where: { $0.id == circleId }) { circleList[i].name = name; changed() }
+    }
+    public func removeMember(_ userId: String, from circleId: String) async throws {
+        guard let i = circleList.firstIndex(where: { $0.id == circleId }), circleList[i].ownerId != userId else { return }
+        circleList[i].memberIds.removeAll { $0 == userId }
+        circleList[i].adminIds.removeAll { $0 == userId }
+        changed()
+    }
 
     // MARK: Wishes
 
@@ -198,6 +207,12 @@ public final class DemoBackend: Backend {
     public func release(_ wishId: String) async throws {
         claimList.removeAll { $0.wishId == wishId && $0.claimerId == meId }
         changed()
+    }
+    public func setPurchased(_ wishId: String, purchased: Bool) async throws {
+        if let i = claimList.firstIndex(where: { $0.wishId == wishId && $0.claimerId == meId }) {
+            claimList[i].status = purchased ? .purchased : .reserved
+            changed()
+        }
     }
 
     // MARK: Occasions

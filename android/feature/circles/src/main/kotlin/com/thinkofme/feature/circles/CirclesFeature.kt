@@ -21,10 +21,12 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -91,6 +93,7 @@ data class CirclesUiState(
     val loading: Boolean = true,
     val circles: List<Circle> = emptyList(),
     val people: Map<String, Person> = emptyMap(),
+    val meId: String? = null,
     val busy: Boolean = false,
     val error: Boolean = false,
 )
@@ -98,8 +101,8 @@ data class CirclesUiState(
 @HiltViewModel
 class CirclesViewModel @Inject constructor(private val repo: CircleRepository, profiles: ProfileRepository) : ViewModel() {
     private val transient = MutableStateFlow(false to false)
-    val state: StateFlow<CirclesUiState> = combine(repo.circles(), profiles.people(), transient) { circles, people, (busy, error) ->
-        CirclesUiState(false, circles, people, busy, error)
+    val state: StateFlow<CirclesUiState> = combine(repo.circles(), profiles.people(), profiles.me(), transient) { circles, people, me, (busy, error) ->
+        CirclesUiState(false, circles, people, me?.id, busy, error)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), CirclesUiState())
 
     fun create(name: String, kind: CircleKind, then: (String) -> Unit) = launch { then(repo.create(name, kind)) }
@@ -108,6 +111,10 @@ class CirclesViewModel @Inject constructor(private val repo: CircleRepository, p
     fun invite(circleId: String, share: (String) -> Unit) = launch { share(repo.createInvite(circleId).url) }
 
     fun leave(circleId: String) = launch { repo.leave(circleId) }
+
+    fun rename(circleId: String, name: String) = launch { repo.rename(circleId, name) }
+
+    fun removeMember(circleId: String, userId: String) = launch { repo.removeMember(circleId, userId) }
 
     private fun launch(block: suspend () -> Unit) {
         viewModelScope.launch {
@@ -162,6 +169,7 @@ fun CirclesScreen(state: CirclesUiState, vm: CirclesViewModel, onOpenPerson: (St
     val context = LocalContext.current
     var creating by rememberSaveable { mutableStateOf(false) }
     var joining by rememberSaveable { mutableStateOf(false) }
+    var managingId by rememberSaveable { mutableStateOf<String?>(null) }
     val inviteText = stringResource(R.string.invite_message, "%s")
 
     fun share(url: String) {
@@ -189,7 +197,7 @@ fun CirclesScreen(state: CirclesUiState, vm: CirclesViewModel, onOpenPerson: (St
             }
         }
         itemsIndexed(state.circles, key = { _, c -> c.id }) { _, circle ->
-            CircleCard(circle, state.people, onInvite = { vm.invite(circle.id, ::share) }, onOpenPerson = onOpenPerson)
+            CircleCard(circle, state.people, onInvite = { vm.invite(circle.id, ::share) }, onOpenPerson = onOpenPerson, onManage = { managingId = circle.id })
             Spacer(Modifier.height(AppSpace.m))
         }
         item {
@@ -203,6 +211,18 @@ fun CirclesScreen(state: CirclesUiState, vm: CirclesViewModel, onOpenPerson: (St
     if (creating) {
         ModalBottomSheet(onDismissRequest = { creating = false }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = AppTheme.colors.canvas) {
             CreateCircleSheet(onCreate = { name, kind -> vm.create(name, kind) { id -> creating = false; vm.invite(id, ::share) } })
+        }
+    }
+    state.circles.firstOrNull { it.id == managingId }?.let { circle ->
+        ModalBottomSheet(onDismissRequest = { managingId = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = AppTheme.colors.canvas) {
+            ManageCircleSheet(
+                circle = circle,
+                people = state.people,
+                meId = state.meId,
+                onRename = { vm.rename(circle.id, it) },
+                onRemove = { vm.removeMember(circle.id, it) },
+                onLeave = { managingId = null; vm.leave(circle.id) },
+            )
         }
     }
     if (joining) {
@@ -219,7 +239,7 @@ fun CirclesScreen(state: CirclesUiState, vm: CirclesViewModel, onOpenPerson: (St
 }
 
 @Composable
-private fun CircleCard(circle: Circle, people: Map<String, Person>, onInvite: () -> Unit, onOpenPerson: (String) -> Unit) {
+private fun CircleCard(circle: Circle, people: Map<String, Person>, onInvite: () -> Unit, onOpenPerson: (String) -> Unit, onManage: () -> Unit) {
     Column(
         Modifier.fillMaxWidth().clip(androidx.compose.foundation.shape.RoundedCornerShape(28.dp)).background(AppTheme.colors.surface).padding(AppSpace.m),
         verticalArrangement = Arrangement.spacedBy(AppSpace.xs),
@@ -245,11 +265,72 @@ private fun CircleCard(circle: Circle, people: Map<String, Person>, onInvite: ()
                     Text(stringResource(R.string.invite), style = AppTheme.type.callout, color = AppTheme.colors.ink)
                 }
             }
+            IconCircleButton(AppIcons.More, stringResource(R.string.circle_manage), onManage, Modifier.padding(start = 6.dp), size = 36.dp)
         }
         Hairline(Modifier.padding(vertical = 4.dp))
         circle.memberIds.mapNotNull { people[it] }.forEach { person ->
             ListRow(onClick = { onOpenPerson(person.id) }, leading = { PersonAvatar(person, size = 36.dp) }, title = person.displayName)
         }
+    }
+}
+
+@Composable
+private fun ManageCircleSheet(
+    circle: Circle,
+    people: Map<String, Person>,
+    meId: String?,
+    onRename: (String) -> Unit,
+    onRemove: (String) -> Unit,
+    onLeave: () -> Unit,
+) {
+    val isAdmin = meId != null && meId in circle.adminIds
+    var name by rememberSaveable(circle.id) { mutableStateOf(circle.name) }
+    var removing by rememberSaveable { mutableStateOf<String?>(null) }
+    var confirmLeave by rememberSaveable { mutableStateOf(false) }
+    Column(Modifier.padding(AppSpace.l).windowInsetsPadding(WindowInsets.navigationBars), verticalArrangement = Arrangement.spacedBy(AppSpace.m)) {
+        Text(circle.name, style = AppTheme.type.title, color = AppTheme.colors.ink)
+        if (isAdmin) {
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppSpace.s)) {
+                AppTextField(name, { name = it.take(60) }, label = stringResource(R.string.circle_name), modifier = Modifier.weight(1f),
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words))
+                SecondaryButton(stringResource(R.string.circle_rename), { onRename(name.trim()) }, enabled = name.isNotBlank() && name.trim() != circle.name)
+            }
+        }
+        Column {
+            circle.memberIds.mapNotNull { people[it] }.forEach { person ->
+                val canRemove = isAdmin && person.id != meId && person.id != circle.ownerId
+                ListRow(
+                    onClick = { if (canRemove) removing = person.id },
+                    leading = { PersonAvatar(person, size = 36.dp) },
+                    title = person.displayName,
+                    trailing = if (canRemove) {
+                        { Icon(AppIcons.Close, stringResource(R.string.remove_member), tint = AppTheme.colors.inkMuted, modifier = Modifier.size(18.dp)) }
+                    } else null,
+                )
+            }
+        }
+        SecondaryButton(stringResource(R.string.leave_circle), { confirmLeave = true }, Modifier.fillMaxWidth())
+    }
+
+    people[removing]?.let { person ->
+        AlertDialog(
+            onDismissRequest = { removing = null },
+            title = { Text(stringResource(R.string.remove_member)) },
+            text = { Text(stringResource(R.string.remove_member_body, person.displayName)) },
+            confirmButton = { TextButton({ removing = null; onRemove(person.id) }) { Text(stringResource(R.string.remove_member), color = AppTheme.colors.danger) } },
+            dismissButton = { TextButton({ removing = null }) { Text(stringResource(R.string.action_cancel)) } },
+            containerColor = AppTheme.colors.surface,
+        )
+    }
+    if (confirmLeave) {
+        AlertDialog(
+            onDismissRequest = { confirmLeave = false },
+            title = { Text(stringResource(R.string.leave_circle)) },
+            text = { Text(stringResource(R.string.leave_circle_body)) },
+            confirmButton = { TextButton({ confirmLeave = false; onLeave() }) { Text(stringResource(R.string.leave_circle), color = AppTheme.colors.danger) } },
+            dismissButton = { TextButton({ confirmLeave = false }) { Text(stringResource(R.string.action_cancel)) } },
+            containerColor = AppTheme.colors.surface,
+        )
     }
 }
 

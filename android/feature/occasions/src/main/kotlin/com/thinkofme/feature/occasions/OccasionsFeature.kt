@@ -134,14 +134,16 @@ fun NavGraphBuilder.occasionsScreen(onOpenPerson: (String) -> Unit) {
     composable<OccasionsRoute> {
         val vm: OccasionsViewModel = hiltViewModel()
         val state by vm.state.collectAsStateWithLifecycle()
-        OccasionsScreen(state, onOpenPerson, vm::save)
+        OccasionsScreen(state, onOpenPerson, vm::save, vm::delete)
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OccasionsScreen(state: OccasionsUiState, onOpenPerson: (String) -> Unit, onSave: (Occasion) -> Unit) {
+fun OccasionsScreen(state: OccasionsUiState, onOpenPerson: (String) -> Unit, onSave: (Occasion) -> Unit, onDelete: (String) -> Unit = {}) {
     var adding by rememberSaveable { mutableStateOf(false) }
+    var editingId by rememberSaveable { mutableStateOf<String?>(null) }
+    val editing = editingId?.let { id -> state.upcoming.firstOrNull { it.occasion.id == id }?.occasion }
     LazyColumn(
         Modifier.fillMaxSize().background(AppTheme.colors.canvas),
         contentPadding = PaddingValues(start = AppSpace.l, end = AppSpace.l, bottom = 120.dp),
@@ -157,7 +159,11 @@ fun OccasionsScreen(state: OccasionsUiState, onOpenPerson: (String) -> Unit, onS
         }
         itemsIndexed(state.upcoming, key = { _, u -> u.occasion.id }) { index, upcoming ->
             ListRow(
-                onClick = { upcoming.person?.id?.let(onOpenPerson) },
+                // Your own dates open for editing; other people's open their list.
+                onClick = {
+                    if (upcoming.occasion.ownerId == state.meId) editingId = upcoming.occasion.id
+                    else upcoming.person?.id?.let(onOpenPerson)
+                },
                 leading = { PersonAvatar(upcoming.person, size = 44.dp) },
                 title = occasionTitle(upcoming, state.meId),
                 subtitle = { Text(shortDate(upcoming.date), style = AppTheme.type.caption, color = AppTheme.colors.inkMuted) },
@@ -198,6 +204,16 @@ fun OccasionsScreen(state: OccasionsUiState, onOpenPerson: (String) -> Unit, onS
             AddOccasionSheet(state, onSave = { onSave(it); adding = false })
         }
     }
+    if (editing != null) {
+        ModalBottomSheet(onDismissRequest = { editingId = null }, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true), containerColor = AppTheme.colors.canvas) {
+            AddOccasionSheet(
+                state,
+                initial = editing,
+                onSave = { onSave(it); editingId = null },
+                onDelete = { onDelete(editing.id); editingId = null },
+            )
+        }
+    }
 }
 
 @Composable
@@ -213,21 +229,34 @@ private fun DaysChip(days: Long) {
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
-private fun AddOccasionSheet(state: OccasionsUiState, onSave: (Occasion) -> Unit) {
-    var kind by rememberSaveable { mutableStateOf(OccasionKind.BIRTHDAY) }
-    var personId by rememberSaveable { mutableStateOf(state.meId) }
-    var title by rememberSaveable { mutableStateOf("") }
-    var dateEpochDay by rememberSaveable { mutableStateOf<Long?>(null) }
-    var yearly by rememberSaveable { mutableStateOf(true) }
-    var circleIds by rememberSaveable { mutableStateOf(listOf(ALL_CIRCLES)) }
+private fun AddOccasionSheet(
+    state: OccasionsUiState,
+    onSave: (Occasion) -> Unit,
+    initial: Occasion? = null,
+    onDelete: (() -> Unit)? = null,
+) {
+    var kind by rememberSaveable { mutableStateOf(initial?.kind ?: OccasionKind.BIRTHDAY) }
+    var personId by rememberSaveable { mutableStateOf(initial?.personId ?: state.meId) }
+    var title by rememberSaveable { mutableStateOf(initial?.title?.takeIf { initial.kind != OccasionKind.BIRTHDAY }.orEmpty()) }
+    var dateEpochDay by rememberSaveable {
+        mutableStateOf(
+            initial?.let { o ->
+                val year = o.year ?: LocalDate.now().year
+                LocalDate.of(year, o.month, o.day.coerceAtMost(java.time.YearMonth.of(year, o.month).lengthOfMonth())).toEpochDay()
+            },
+        )
+    }
+    var yearly by rememberSaveable { mutableStateOf(initial?.yearly ?: true) }
+    var circleIds by rememberSaveable { mutableStateOf(initial?.visibleCircleIds ?: listOf(ALL_CIRCLES)) }
     var picking by remember { mutableStateOf(false) }
+    var confirmDelete by remember { mutableStateOf(false) }
     val date = dateEpochDay?.let(LocalDate::ofEpochDay)
 
     Column(
         Modifier.verticalScroll(rememberScrollState()).padding(AppSpace.l).windowInsetsPadding(WindowInsets.navigationBars),
         verticalArrangement = Arrangement.spacedBy(AppSpace.m),
     ) {
-        Text(stringResource(R.string.add_date), style = AppTheme.type.title, color = AppTheme.colors.ink)
+        Text(stringResource(if (initial == null) R.string.add_date else R.string.edit_date), style = AppTheme.type.title, color = AppTheme.colors.ink)
         FlowRow(horizontalArrangement = Arrangement.spacedBy(AppSpace.xs), verticalArrangement = Arrangement.spacedBy(AppSpace.xs)) {
             listOf(
                 OccasionKind.BIRTHDAY to R.string.kind_birthday_title, OccasionKind.ANNIVERSARY to R.string.kind_anniversary_title,
@@ -261,7 +290,7 @@ private fun AddOccasionSheet(state: OccasionsUiState, onSave: (Occasion) -> Unit
                 val d = date ?: return@PrimaryButton
                 onSave(
                     Occasion(
-                        id = "", ownerId = state.meId.orEmpty(), personId = personId, kind = kind,
+                        id = initial?.id.orEmpty(), ownerId = state.meId.orEmpty(), personId = personId, kind = kind,
                         title = if (kind == OccasionKind.BIRTHDAY) birthdayTitle else title.trim(),
                         month = d.monthValue, day = d.dayOfMonth, year = d.year, yearly = yearly, visibleCircleIds = circleIds,
                     ),
@@ -269,6 +298,19 @@ private fun AddOccasionSheet(state: OccasionsUiState, onSave: (Occasion) -> Unit
             },
             Modifier.fillMaxWidth(),
             enabled = date != null && (kind == OccasionKind.BIRTHDAY || title.isNotBlank()),
+        )
+        if (onDelete != null) {
+            SecondaryButton(stringResource(R.string.action_delete), { confirmDelete = true }, Modifier.fillMaxWidth(), leadingIcon = AppIcons.Trash)
+        }
+    }
+
+    if (confirmDelete && onDelete != null) {
+        androidx.compose.material3.AlertDialog(
+            onDismissRequest = { confirmDelete = false },
+            title = { Text(stringResource(R.string.delete_date_title)) },
+            confirmButton = { TextButton({ confirmDelete = false; onDelete() }) { Text(stringResource(R.string.action_delete), color = AppTheme.colors.danger) } },
+            dismissButton = { TextButton({ confirmDelete = false }) { Text(stringResource(R.string.action_cancel)) } },
+            containerColor = AppTheme.colors.surface,
         )
     }
 

@@ -61,6 +61,9 @@ interface CircleRepository {
     suspend fun previewInvite(code: String): InvitePreview
     suspend fun joinWithInvite(code: String): String
     suspend fun leave(circleId: String)
+
+    /** Admins only; the owner can't be removed. */
+    suspend fun removeMember(circleId: String, userId: String)
 }
 
 data class LinkPreview(
@@ -97,6 +100,9 @@ interface ClaimRepository {
     fun myClaims(): Flow<List<Claim>>
     suspend fun claim(wish: Wish)
     suspend fun release(wishId: String)
+
+    /** "Planning to buy" → "bought" (and back). */
+    suspend fun setPurchased(wishId: String, purchased: Boolean)
 }
 
 interface OccasionRepository {

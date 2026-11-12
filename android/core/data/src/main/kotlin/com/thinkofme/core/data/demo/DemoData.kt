@@ -173,6 +173,10 @@ class DemoCircleRepository @Inject constructor(private val store: DemoStore) : C
 
     override suspend fun joinWithInvite(code: String): String = create("Friends", CircleKind.GROUP)
 
+    override suspend fun removeMember(circleId: String, userId: String) {
+        store.circles.update { list -> list.map { if (it.id == circleId) it.copy(memberIds = it.memberIds - userId, adminIds = it.adminIds - userId) else it } }
+    }
+
     override suspend fun leave(circleId: String) {
         store.circles.update { list -> list.filterNot { it.id == circleId } }
     }
@@ -253,6 +257,12 @@ class DemoClaimRepository @Inject constructor(private val store: DemoStore) : Cl
         store.claims.update { list ->
             list.filterNot { it.wishId == wish.id && it.claimerId == store.me } +
                 Claim(wish.id, wish.ownerId, store.me, store.people.value[store.me]?.displayName ?: "", ClaimStatus.RESERVED)
+        }
+    }
+
+    override suspend fun setPurchased(wishId: String, purchased: Boolean) {
+        store.claims.update { list ->
+            list.map { if (it.wishId == wishId && it.claimerId == store.me) it.copy(status = if (purchased) ClaimStatus.PURCHASED else ClaimStatus.RESERVED) else it }
         }
     }
 

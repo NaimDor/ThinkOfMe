@@ -14,6 +14,9 @@ final class CirclesModel {
 
     init(backend: any Backend) { self.backend = backend }
 
+    var meId: String? { backend.currentUser?.id }
+    func isAdmin(_ circle: GiftCircle) -> Bool { meId.map(circle.adminIds.contains) ?? false }
+
     func observe() async {
         let circleStream = backend.circles(), peopleStream = backend.people()
         await withTaskGroup(of: Void.self) { group in
@@ -32,6 +35,35 @@ final class CirclesModel {
     func invite(_ circleId: String) async {
         do { shareURL = try await backend.createInvite(circleId: circleId).url } catch { failed = true }
     }
+
+    func rename(_ circleId: String, to name: String) async {
+        let trimmed = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty else { return }
+        do { try await backend.renameCircle(circleId, name: String(trimmed.prefix(60))) } catch { failed = true }
+    }
+
+    func remove(_ userId: String, from circleId: String) async {
+        do { try await backend.removeMember(userId, from: circleId) } catch { failed = true }
+    }
+
+    func leave(_ circleId: String) async {
+        do { try await backend.leaveCircle(circleId) } catch { failed = true }
+    }
+}
+
+/// A pending destructive or naming action on a circle, driving the alerts below.
+private enum CircleAction: Identifiable {
+    case rename(GiftCircle)
+    case remove(GiftCircle, Person)
+    case leave(GiftCircle)
+
+    var id: String {
+        switch self {
+        case .rename(let c): "rename-\(c.id)"
+        case .remove(let c, let p): "remove-\(c.id)-\(p.id)"
+        case .leave(let c): "leave-\(c.id)"
+        }
+    }
 }
 
 struct CirclesView: View {
@@ -40,6 +72,8 @@ struct CirclesView: View {
     var join: (String) -> Void
     @State private var creating = false
     @State private var joining = false
+    @State private var action: CircleAction?
+    @State private var newName = ""
 
     var body: some View {
         ScrollView {
@@ -79,7 +113,47 @@ struct CirclesView: View {
             ShareSheet(items: [L("invite_message", url.absoluteString)])
         }
         .alert(L("error_generic"), isPresented: $model.failed) { Button("OK") {} }
+        .alert(alertTitle, isPresented: Binding(get: { action != nil }, set: { if !$0 { action = nil } }), presenting: action) { action in
+            switch action {
+            case .rename(let circle):
+                TextField(L("circle_name"), text: $newName)
+                Button(L("action_save")) { Task { await model.rename(circle.id, to: newName) } }
+            case .remove(let circle, let person):
+                Button(L("remove_member"), role: .destructive) { Task { await model.remove(person.id, from: circle.id) } }
+            case .leave(let circle):
+                Button(L("leave_circle"), role: .destructive) { Task { await model.leave(circle.id) } }
+            }
+            Button(L("action_cancel"), role: .cancel) {}
+        } message: { action in
+            switch action {
+            case .rename: EmptyView()
+            case .remove(_, let person): Text(L("remove_member_body", person.displayName))
+            case .leave: Text(L("leave_circle_body"))
+            }
+        }
         .task { await model.observe() }
+    }
+
+    private var alertTitle: String {
+        switch action {
+        case .rename: L("circle_rename")
+        case .remove: L("remove_member")
+        case .leave: L("leave_circle")
+        case nil: ""
+        }
+    }
+
+    private func manageMenu(_ circle: GiftCircle) -> some View {
+        Menu {
+            if model.isAdmin(circle) {
+                Button { newName = circle.name; action = .rename(circle) } label: { Label(L("circle_rename"), systemImage: "pencil") }
+            }
+            Button(role: .destructive) { action = .leave(circle) } label: { Label(L("leave_circle"), systemImage: "rectangle.portrait.and.arrow.right") }
+        } label: {
+            Image(systemName: "ellipsis").font(.callout.weight(.semibold)).foregroundStyle(AppColor.ink)
+                .frame(width: 36, height: 36).background(AppColor.surfaceMuted, in: .circle)
+        }
+        .accessibilityLabel(L("circle_manage"))
     }
 
     private func card(_ circle: GiftCircle) -> some View {
@@ -98,6 +172,7 @@ struct CirclesView: View {
                     }
                     .buttonStyle(PressableStyle())
                 }
+                manageMenu(circle)
             }
             Hairline().padding(.vertical, 4)
             ForEach(circle.memberIds.compactMap { model.people[$0] }) { person in
@@ -111,6 +186,13 @@ struct CirclesView: View {
                     .contentShape(.rect)
                 }
                 .buttonStyle(.plain)
+                .contextMenu {
+                    if model.isAdmin(circle), person.id != model.meId, person.id != circle.ownerId {
+                        Button(role: .destructive) { action = .remove(circle, person) } label: {
+                            Label(L("remove_member"), systemImage: "person.badge.minus")
+                        }
+                    }
+                }
             }
         }
         .padding(Space.m)

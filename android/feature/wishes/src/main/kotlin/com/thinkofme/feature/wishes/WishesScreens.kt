@@ -90,7 +90,7 @@ fun NavGraphBuilder.wishesScreens(
     composable<WishRoute> {
         val vm: WishViewModel = hiltViewModel()
         val state by vm.state.collectAsStateWithLifecycle()
-        WishScreen(state, onBack, vm::toggleClaim, onEdit = { state.wish?.let { onEditWish(it.id) } }, vm::markReceived, onDelete = { vm.delete(onBack) })
+        WishScreen(state, onBack, vm::toggleClaim, onEdit = { state.wish?.let { onEditWish(it.id) } }, vm::markReceived, onDelete = { vm.delete(onBack) }, onSetBought = vm::setBought)
     }
     composable<MyListRoute> {
         val vm: MyListViewModel = hiltViewModel()
@@ -193,6 +193,7 @@ fun WishScreen(
     onEdit: () -> Unit,
     onMarkReceived: () -> Unit,
     onDelete: () -> Unit,
+    onSetBought: (Boolean) -> Unit = {},
 ) {
     val wish = state.wish ?: run {
         Box(Modifier.fillMaxSize().background(AppTheme.colors.canvas)) { TopBar("", onBack) }
@@ -246,7 +247,9 @@ fun WishScreen(
                 }
                 if (!state.isMine) {
                     val ownerName = owner?.displayName.orEmpty()
+                    val bought = state.myClaim?.status == com.thinkofme.core.model.ClaimStatus.PURCHASED
                     val hint = when {
+                        wrapped && bought -> stringResource(R.string.claim_hint_bought, ownerName)
                         wrapped -> stringResource(R.string.claim_hint_mine, ownerName)
                         someoneElse != null -> stringResource(R.string.claim_hint_other, someoneElse.claimerName, ownerName)
                         else -> stringResource(R.string.claim_hint_open, ownerName)
@@ -254,6 +257,15 @@ fun WishScreen(
                     Row(Modifier.padding(top = AppSpace.xs), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(AppSpace.xs)) {
                         Icon(AppIcons.Lock, null, tint = AppTheme.colors.inkMuted, modifier = Modifier.size(16.dp))
                         Text(hint, style = AppTheme.type.caption, color = AppTheme.colors.inkMuted)
+                    }
+                    if (wrapped) {
+                        com.thinkofme.core.designsystem.component.ChoiceChip(
+                            stringResource(R.string.mark_bought),
+                            selected = bought,
+                            onClick = { onSetBought(!bought) },
+                            icon = AppIcons.Check,
+                            modifier = Modifier.padding(top = AppSpace.xs),
+                        )
                     }
                 }
             }

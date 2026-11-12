@@ -172,4 +172,13 @@
     <string name="settings_sign_out">تسجيل الخروج</string>
     <string name="settings_delete_account">حذف الحساب</string>
     <string name="delete_account_body">سيؤدي هذا إلى حذف أمنياتك وتواريخك وعضويتك في الدوائر نهائيًا. لا يمكن التراجع عنه.</string>
+    <string name="mark_bought">اشتريتها بالفعل</string>
+    <string name="claim_hint_bought">تم الشراء. سيرى الآخرون أنها محجوزة، أما %s فلن يعرف أبدًا.</string>
+    <string name="edit_date">تعديل التاريخ</string>
+    <string name="delete_date_title">حذف هذا التاريخ؟</string>
+    <string name="circle_manage">إدارة الدائرة</string>
+    <string name="circle_rename">إعادة التسمية</string>
+    <string name="remove_member">إزالة من الدائرة</string>
+    <string name="remove_member_body">لن يرى %s أمنيات الدائرة بعد الآن.</string>
+    <string name="leave_circle_body">لن ترى أمنيات هذه الدائرة بعد الآن، ولن يروا أمنياتك.</string>
 </resources>
