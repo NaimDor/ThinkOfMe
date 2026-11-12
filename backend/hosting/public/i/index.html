@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>You're invited · ThinkOfMe</title>
+<meta name="robots" content="noindex">
+<link rel="stylesheet" href="/style.css">
+</head>
+<body><main>
+<h1 id="title">You're invited to ThinkOfMe</h1>
+<p id="lead" class="muted">Someone wants to share wishlists with you, so you always know what would make each other smile.</p>
+<div class="card">
+  <div id="codeLabel" class="muted">Your invite code</div>
+  <div id="code" class="code">--------</div>
+  <div class="row">
+    <a id="open" class="button" href="#">Open in ThinkOfMe</a>
+    <button id="copy" class="button secondary" type="button">Copy code</button>
+  </div>
+</div>
+<h2 id="howTitle">No app yet?</h2>
+<ol>
+  <li id="step1">Install ThinkOfMe and sign in.</li>
+  <li id="step2">Go to Circles, then "Join with a code".</li>
+  <li id="step3">Enter the code above.</li>
+</ol>
+<div id="stores" class="row"></div>
+<footer><a href="/privacy/">Privacy</a> · <a href="/terms/">Terms</a> · <a href="/support/">Support</a></footer>
+</main>
+<script>
+// Store links appear once the apps are public.
+const APP_STORE_URL = "";
+const PLAY_STORE_URL = "";
+
+const t = {
+  en: { title: "You're invited to ThinkOfMe", lead: "Someone wants to share wishlists with you, so you always know what would make each other smile.", codeLabel: "Your invite code", open: "Open in ThinkOfMe", copy: "Copy code", copied: "Copied", howTitle: "No app yet?", step1: "Install ThinkOfMe and sign in.", step2: "Go to Circles, then “Join with a code”.", step3: "Enter the code above.", invalid: "This invite link looks incomplete. Ask for a new one." },
+  he: { title: "הוזמנתם ל־ThinkOfMe", lead: "מישהו רוצה לשתף איתכם רשימות משאלות, כדי שתמיד תדעו מה ישמח אחד את השני.", codeLabel: "קוד ההזמנה שלכם", open: "פתיחה ב־ThinkOfMe", copy: "העתקת הקוד", copied: "הועתק", howTitle: "עוד אין לכם את האפליקציה?", step1: "התקינו את ThinkOfMe והתחברו.", step2: "עברו למעגלים, ואז “הצטרפות עם קוד”.", step3: "הזינו את הקוד שלמעלה.", invalid: "נראה שהקישור חסר. בקשו קישור חדש." },
+  ar: { title: "أنت مدعو إلى ThinkOfMe", lead: "شخص ما يريد مشاركة قوائم الأمنيات معك، لتعرفا دائمًا ما يُسعد كلًّا منكما.", codeLabel: "رمز الدعوة الخاص بك", open: "فتح في ThinkOfMe", copy: "نسخ الرمز", copied: "تم النسخ", howTitle: "ليس لديك التطبيق بعد؟", step1: "ثبّت ThinkOfMe وسجّل الدخول.", step2: "انتقل إلى الدوائر، ثم “الانضمام برمز”.", step3: "أدخل الرمز أعلاه.", invalid: "يبدو أن رابط الدعوة غير مكتمل. اطلب رابطًا جديدًا." },
+  ru: { title: "Вас пригласили в ThinkOfMe", lead: "Кто-то хочет делиться с вами списками желаний, чтобы вы всегда знали, что порадует друг друга.", codeLabel: "Ваш код приглашения", open: "Открыть в ThinkOfMe", copy: "Скопировать код", copied: "Скопировано", howTitle: "Ещё нет приложения?", step1: "Установите ThinkOfMe и войдите.", step2: "Откройте «Круги», затем «Вступить по коду».", step3: "Введите код выше.", invalid: "Ссылка-приглашение неполная. Попросите новую." },
+};
+const lang = (navigator.language || "en").slice(0, 2).replace("iw", "he");
+const s = t[lang] || t.en;
+document.documentElement.lang = t[lang] ? lang : "en";
+if (lang === "he" || lang === "ar") document.documentElement.dir = "rtl";
+for (const id of ["title", "lead", "codeLabel", "open", "copy", "howTitle", "step1", "step2", "step3"]) {
+  document.getElementById(id).textContent = s[id];
+}
+document.title = s.title;
+
+const raw = location.pathname.split("/").filter(Boolean)[1] || "";
+const code = raw.toUpperCase().replace(/[^A-Z0-9]/g, "");
+const valid = /^[23456789ABCDEFGHJKMNPQRSTUVWXYZ]{8}$/.test(code);
+document.getElementById("code").textContent = valid ? code : "--------";
+if (!valid) document.getElementById("lead").textContent = s.invalid;
+
+const open = document.getElementById("open");
+open.href = valid ? "thinkofme://join?code=" + code : "#";
+document.getElementById("copy").addEventListener("click", async (e) => {
+  try { await navigator.clipboard.writeText(code); e.target.textContent = s.copied; } catch (_) {}
+});
+
+const stores = document.getElementById("stores");
+for (const [url, label] of [[APP_STORE_URL, "App Store"], [PLAY_STORE_URL, "Google Play"]]) {
+  if (!url) continue;
+  const a = document.createElement("a");
+  a.className = "button secondary"; a.href = url; a.textContent = label;
+  stores.appendChild(a);
+}
+</script>
+</body>
+</html>

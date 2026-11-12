@@ -30,6 +30,12 @@
         <meta-data
             android:name="com.google.firebase.messaging.default_notification_channel_id"
             android:value="reminders" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_icon"
+            android:resource="@drawable/ic_notification" />
+        <meta-data
+            android:name="com.google.firebase.messaging.default_notification_color"
+            android:resource="@color/accent" />
 
         <activity
             android:name=".MainActivity"
@@ -41,12 +47,20 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
-            <!-- Invite links: https://thinkofme.app/i/CODE -->
+            <!-- Invite links: https://<linkHost>/i/CODE -->
             <intent-filter android:autoVerify="true">
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />
                 <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="https" android:host="thinkofme.app" android:pathPrefix="/i/" />
+                <data android:scheme="https" android:host="${linkHost}" android:pathPrefix="/i/" />
+            </intent-filter>
+
+            <!-- From the invite web page: thinkofme://join?code=CODE -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="thinkofme" android:host="join" />
             </intent-filter>
 
             <!-- Share a product page from any app to add it as a wish. -->

@@ -35,11 +35,12 @@ export const sendHolidayReminders = onSchedule({ schedule: "every 60 minutes", r
         .filter((c) => c.get("kind") === "pair")
         .flatMap((c) => (c.get("memberIds") as string[]).filter((m) => m !== uid));
       const hasPeople = circles.docs.some((c) => ((c.get("memberIds") as string[]) ?? []).length > 1);
-      const partnerNames = partnerIds.length
-        ? (await db.collection("users").where(FieldPath.documentId(), "in", partnerIds.slice(0, 30)).get()).docs.map((d) => String(d.get("displayName") ?? ""))
+      const partners = partnerIds.length
+        ? (await db.collection("users").where(FieldPath.documentId(), "in", partnerIds.slice(0, 30)).get()).docs
         : [];
+      const partnerNames = partners.map((d) => String(d.get("displayName") ?? ""));
 
-      const due = dueHolidayReminder(holidays, local, { partnerNames, hasPeople });
+      const due = dueHolidayReminder(holidays, local, { partnerNames, partnerIds: partners.map((d) => d.id), hasPeople });
       if (!due) continue;
 
       // One holiday reminder per user per day, idempotent across retries.
@@ -58,7 +59,13 @@ export const sendHolidayReminders = onSchedule({ schedule: "every 60 minutes", r
         uid,
         key,
         (locale) => ({ holiday: due.holiday.name[locale], days: due.days, name: due.kind === "partner" ? due.partnerName : "" }),
-        { holidayId: due.holiday.id, threadId: `holiday_${due.holiday.id}` },
+        {
+          holidayId: due.holiday.id,
+          threadId: `holiday_${due.holiday.id}`,
+          // Self → your list; partner → their list; others → home.
+          screen: due.kind === "self" ? "myList" : due.kind === "partner" ? "person" : "home",
+          ...(due.kind === "partner" && due.partnerId ? { personId: due.partnerId } : {}),
+        },
       );
       sent++;
     }

@@ -25,6 +25,9 @@ export function maxMembers(kind: CircleKind): number {
   return kind === "pair" ? 2 : 50;
 }
 
+/** Host of the Hosting site that serves invite pages and app-link files. */
+export const LINK_HOST = "thinkofme.web.app";
+
 export function inviteLink(code: string): string {
-  return `https://thinkofme.app/i/${code}`;
+  return `https://${LINK_HOST}/i/${code}`;
 }

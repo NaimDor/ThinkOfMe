@@ -74,6 +74,7 @@ targets:
         GADApplicationIdentifier: $(GAD_APPLICATION_ID)
         TOMNativeAdUnitID: $(TOM_NATIVE_AD_UNIT_ID)
         TOMBannerAdUnitID: $(TOM_BANNER_AD_UNIT_ID)
+        TOMLinkHost: $(LINK_HOST)
         NSUserTrackingUsageDescription: Lets us show ads that are more relevant to you. ThinkOfMe works the same either way.
         SKAdNetworkItems:
           - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
@@ -87,7 +88,7 @@ targets:
       properties:
         aps-environment: $(APS_ENVIRONMENT)
         com.apple.developer.applesignin: [Default]
-        com.apple.developer.associated-domains: [applinks:thinkofme.app]
+        com.apple.developer.associated-domains: ["applinks:$(LINK_HOST)"]
     settings:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.thinkofme.app

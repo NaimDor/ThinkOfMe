@@ -104,15 +104,39 @@ struct MainTabs: View {
         }
         .onChange(of: app.incoming, initial: true) { _, link in
             guard let link else { return }
-            switch link {
-            case .invite(let code): sheet = .join(code: code)
-            case .sharedURL(let url): sheet = .editWish(id: nil, sharedURL: url)
-            }
+            route(link)
             app.incoming = nil
+        }
+        .onChange(of: PushRouter.shared.pending, initial: true) { _, link in
+            guard let link else { return }
+            route(link)
+            PushRouter.shared.pending = nil
         }
     }
 
     private func add() { sheet = .editWish(id: nil, sharedURL: nil) }
+
+    private func route(_ link: IncomingLink) {
+        switch link {
+        case .invite(let code): sheet = .join(code: code)
+        case .sharedURL(let url): sheet = .editWish(id: nil, sharedURL: url)
+        case .person(let id):
+            tab = .home
+            homePath = NavigationPath()
+            homePath.append(Route.person(id))
+        case .wish(let id, let ownerId):
+            tab = .home
+            homePath = NavigationPath()
+            homePath.append(Route.person(ownerId))
+            homePath.append(Route.wish(id: id, ownerId: ownerId))
+        case .tab(let name):
+            tab = switch name {
+            case "myList": .myList
+            case "dates": .dates
+            default: .home
+            }
+        }
+    }
 
     @ToolbarContentBuilder
     private var addButton: some ToolbarContent {

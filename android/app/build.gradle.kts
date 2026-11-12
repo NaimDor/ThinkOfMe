@@ -28,6 +28,9 @@ val testAdmobAppId = "ca-app-pub-3940256099942544~3347511713"
 val testNativeUnit = "ca-app-pub-3940256099942544/2247696110"
 val testBannerUnit = "ca-app-pub-3940256099942544/9214589741"
 
+// Host of the Hosting site that serves invite links (https://<host>/i/<code>).
+val linkHost = "thinkofme.web.app"
+
 android {
     namespace = "com.thinkofme.app"
 
@@ -37,6 +40,8 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         buildConfigField("boolean", "HAS_FIREBASE", hasFirebaseConfig.toString())
+        buildConfigField("String", "LINK_HOST", "\"$linkHost\"")
+        manifestPlaceholders["linkHost"] = linkHost
     }
 
     signingConfigs {

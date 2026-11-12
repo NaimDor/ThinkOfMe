@@ -71,6 +71,24 @@ import kotlinx.coroutines.flow.Flow
 sealed interface IncomingIntent {
     data class SharedText(val text: String) : IncomingIntent
     data class Invite(val code: String) : IncomingIntent
+
+    /** A tapped notification. */
+    data class OpenPerson(val personId: String) : IncomingIntent
+    data class OpenWish(val wishId: String, val ownerId: String) : IncomingIntent
+    data class OpenTab(val tab: String) : IncomingIntent
+
+    companion object {
+        /** Reads the routing fields the backend puts on every push. */
+        fun fromPush(data: Map<String, String?>): IncomingIntent? = when (data["screen"]) {
+            "wish" -> {
+                val wishId = data["wishId"]; val ownerId = data["ownerId"]
+                if (wishId != null && ownerId != null) OpenWish(wishId, ownerId) else null
+            }
+            "person" -> data["personId"]?.let(::OpenPerson)
+            "myList", "dates", "home" -> OpenTab(data.getValue("screen")!!)
+            else -> null
+        }
+    }
 }
 
 @Composable
@@ -123,6 +141,13 @@ private fun MainNavigation(incoming: Flow<IncomingIntent>, onIncomingHandled: ()
             when (intent) {
                 is IncomingIntent.SharedText -> nav.navigate(EditWishRoute(sharedText = intent.text))
                 is IncomingIntent.Invite -> nav.navigate(JoinRoute(intent.code))
+                is IncomingIntent.OpenPerson -> nav.navigate(PersonRoute(intent.personId))
+                is IncomingIntent.OpenWish -> nav.navigate(WishRoute(intent.wishId, intent.ownerId))
+                is IncomingIntent.OpenTab -> when (intent.tab) {
+                    "myList" -> nav.switchTab(Tab.MyList)
+                    "dates" -> nav.switchTab(Tab.Dates)
+                    else -> nav.switchTab(Tab.Home)
+                }
             }
             onIncomingHandled()
         }

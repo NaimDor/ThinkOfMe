@@ -27,13 +27,15 @@ export function daysUntilHoliday(holiday: HolidayDef, today: CalendarDate): numb
 export interface HolidayContext {
   /** Partners from two-person circles. */
   partnerNames: string[];
+  /** Their user ids, in the same order. */
+  partnerIds?: string[];
   /** Whether the user shares any circle with anyone. */
   hasPeople: boolean;
 }
 
 export type HolidayReminder =
   | { kind: "self"; holiday: HolidayDef; days: number }
-  | { kind: "partner"; holiday: HolidayDef; days: number; partnerName: string }
+  | { kind: "partner"; holiday: HolidayDef; days: number; partnerName: string; partnerId?: string }
   | { kind: "others"; holiday: HolidayDef; days: number };
 
 /**
@@ -49,7 +51,7 @@ export function dueHolidayReminder(holidays: readonly HolidayDef[], today: Calen
     if (days === HOLIDAY_SELF_DAYS) return { kind: "self", holiday, days };
     if (days === HOLIDAY_OTHERS_DAYS) {
       return couple
-        ? { kind: "partner", holiday, days, partnerName: ctx.partnerNames[0]! }
+        ? { kind: "partner", holiday, days, partnerName: ctx.partnerNames[0]!, partnerId: ctx.partnerIds?.[0] }
         : { kind: "others", holiday, days };
     }
   }

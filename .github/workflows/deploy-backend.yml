@@ -1,11 +1,17 @@
 name: Deploy backend
 
-# Deploys Firestore rules + indexes, Storage rules and Cloud Functions to your
-# Firebase project. Start it from GitHub → Actions → Deploy backend → "Run workflow".
+# Deploys Firestore rules + indexes, Storage rules, Cloud Functions and the
+# Hosting site (invite pages, privacy/terms/support, app-link files).
+# Start it from GitHub → Actions → Deploy backend → "Run workflow".
 #
-# Required repository secrets:
+# Secrets:
 #   FIREBASE_PROJECT_ID            e.g. thinkofme-12345
-#   FIREBASE_SERVICE_ACCOUNT_JSON  JSON key of a service account allowed to deploy
+#   FIREBASE_SERVICE_ACCOUNT_JSON  JSON key of the deploy service account
+#   APPLE_TEAM_ID                  (shared with TestFlight) lets invite links open the iOS app
+#   ANDROID_CERT_SHA256            optional; release signing certificate SHA-256, comma-separated
+# Variables (Settings → Secrets and variables → Actions → Variables):
+#   FIREBASE_HOSTING_SITE          optional; Hosting site ID, e.g. thinkofme (default: the project's site)
+#   SUPPORT_EMAIL                  contact address shown on the privacy, terms and support pages
 
 on:
   workflow_dispatch:
@@ -35,6 +41,35 @@ jobs:
         run: npm ci --prefix functions
       - name: Test before deploying
         run: npm test --prefix functions && npm run test:rules --prefix functions
+
+      - name: Prepare Hosting (app-link files, contact email, site)
+        env:
+          TEAM: ${{ secrets.APPLE_TEAM_ID }}
+          ANDROID_SHA: ${{ secrets.ANDROID_CERT_SHA256 }}
+          SITE: ${{ vars.FIREBASE_HOSTING_SITE }}
+          SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+        run: |
+          mkdir -p hosting/public/.well-known
+          if [ -n "$TEAM" ]; then
+            cat > hosting/public/.well-known/apple-app-site-association <<EOF
+          {"applinks":{"details":[{"appIDs":["$TEAM.com.thinkofme.app"],"components":[{"/":"/i/*","comment":"Circle invites"}]}]},"webcredentials":{"apps":["$TEAM.com.thinkofme.app"]}}
+          EOF
+          else
+            echo "::warning::APPLE_TEAM_ID not set: invite links won't open the iOS app directly."
+          fi
+          fingerprints=$(printf '%s' "$ANDROID_SHA" | tr ',' '\n' | sed '/^\s*$/d; s/^\s*//; s/\s*$//; s/.*/"&"/' | paste -sd, -)
+          cat > hosting/public/.well-known/assetlinks.json <<EOF
+          [{"relation":["delegate_permission/common.handle_all_urls"],"target":{"namespace":"android_app","package_name":"com.thinkofme.app","sha256_cert_fingerprints":[${fingerprints}]}}]
+          EOF
+          if [ -n "$SUPPORT_EMAIL" ]; then
+            grep -rl "__SUPPORT_EMAIL__" hosting/public | xargs sed -i "s/__SUPPORT_EMAIL__/${SUPPORT_EMAIL}/g"
+          else
+            echo "::warning::SUPPORT_EMAIL variable not set: pages show a placeholder contact address."
+          fi
+          if [ -n "$SITE" ]; then
+            jq --arg site "$SITE" '.hosting.site = $site' firebase.json > firebase.tmp && mv firebase.tmp firebase.json
+          fi
+
       - name: Deploy
         env:
           PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
@@ -46,4 +81,4 @@ jobs:
           printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           export GOOGLE_APPLICATION_CREDENTIALS="$RUNNER_TEMP/sa.json"
           functions/node_modules/.bin/firebase deploy --project "$PROJECT" \
-            --only firestore,storage,functions --force --non-interactive
+            --only firestore,storage,functions,hosting --force --non-interactive

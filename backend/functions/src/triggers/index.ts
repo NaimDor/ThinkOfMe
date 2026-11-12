@@ -47,6 +47,8 @@ export const onWishWritten = onDocumentWritten({ document: "wishes/{wishId}", re
       claims.docs.map(async (claim) => {
         await notifyUser(String(claim.get("claimerId")), "claimedWishRemoved", () => ({ name: ownerName, wish: String(before.title) }), {
           threadId: `wish_${wishId}`,
+          screen: "person",
+          personId: String(before.ownerId),
         });
         await claim.ref.delete();
       }),
@@ -82,7 +84,9 @@ export const onWishWritten = onDocumentWritten({ document: "wishes/{wishId}", re
     claims.docs.map((claim) =>
       notifyUser(String(claim.get("claimerId")), "claimedWishChanged", () => ({ name: ownerName, wish: String(after.title) }), {
         threadId: `wish_${wishId}`,
+        screen: "wish",
         wishId,
+        ownerId: String(after.ownerId),
       }),
     ),
   );

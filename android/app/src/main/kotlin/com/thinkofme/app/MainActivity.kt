@@ -61,12 +61,20 @@ class MainActivity : ComponentActivity() {
     }
 
     private fun handle(intent: Intent?) {
+        // Tapped notification: FCM (app in background) or PushService (app open) puts routing fields in extras.
+        intent?.extras?.takeIf { it.containsKey("screen") }?.let { extras ->
+            IncomingIntent.fromPush(extras.keySet().associateWith { extras.getString(it) })?.let { incoming.trySend(it) }
+            return
+        }
         when (intent?.action) {
             Intent.ACTION_SEND -> intent.getStringExtra(Intent.EXTRA_TEXT)?.let { incoming.trySend(IncomingIntent.SharedText(it)) }
             Intent.ACTION_VIEW -> {
                 val data = intent.data ?: return
-                if (data.host == "thinkofme.app" && data.pathSegments.firstOrNull() == "i") {
-                    data.pathSegments.getOrNull(1)?.let { incoming.trySend(IncomingIntent.Invite(it)) }
+                when {
+                    data.scheme == "https" && data.host == BuildConfig.LINK_HOST && data.pathSegments.firstOrNull() == "i" ->
+                        data.pathSegments.getOrNull(1)?.let { incoming.trySend(IncomingIntent.Invite(it)) }
+                    data.scheme == "thinkofme" && data.host == "join" ->
+                        data.getQueryParameter("code")?.let { incoming.trySend(IncomingIntent.Invite(it)) }
                 }
             }
         }

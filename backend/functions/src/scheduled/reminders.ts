@@ -70,7 +70,13 @@ export const sendReminders = onSchedule({ schedule: "every 60 minutes", region: 
         recipientId,
         key,
         (locale) => ({ name, days: offset, occasion: occasion.kind === "custom" ? occasion.title : occasionName(occasion.kind, locale) }),
-        { occasionId: occasion.id, personId: celebrated, threadId: `occasion_${occasion.id}` },
+        {
+          occasionId: occasion.id,
+          personId: celebrated,
+          threadId: `occasion_${occasion.id}`,
+          // Your own day → your list; someone else's → their list.
+          screen: audience === "self" ? "myList" : "person",
+        },
       );
       sent++;
     }
