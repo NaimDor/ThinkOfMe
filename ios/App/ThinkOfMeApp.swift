@@ -2,6 +2,7 @@ import Core
 import DesignSystem
 import FirebaseAppCheck
 import FirebaseCore
+import FirebaseCrashlytics
 import FirebaseMessaging
 import GoogleSignIn
 import SwiftUI

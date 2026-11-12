@@ -58,6 +58,8 @@ targets:
         product: FirebaseStorage
       - package: Firebase
         product: FirebaseAppCheck
+      - package: Firebase
+        product: FirebaseCrashlytics
       - package: GoogleMobileAds
       - package: GoogleUserMessagingPlatform
       - package: GoogleSignIn
@@ -87,6 +89,18 @@ targets:
             CFBundleURLSchemes: [thinkofme]
           - CFBundleURLName: google-sign-in
             CFBundleURLSchemes: [$(GOOGLE_REVERSED_CLIENT_ID)]
+    postBuildScripts:
+      - name: Upload dSYMs to Crashlytics
+        basedOnDependencyAnalysis: false
+        inputFiles:
+          - ${DWARF_DSYM_FOLDER_PATH}/${DWARF_DSYM_FILE_NAME}/Contents/Resources/DWARF/${TARGET_NAME}
+          - $(SRCROOT)/$(BUILT_PRODUCTS_DIR)/$(INFOPLIST_PATH)
+        script: |
+          # Release builds with a Firebase config upload debug symbols so crash reports are readable.
+          # Never fails the build.
+          if [ "$CONFIGURATION" = "Release" ] && [ -f "$SRCROOT/App/GoogleService-Info.plist" ]; then
+            "${BUILD_DIR%/Build/*}/SourcePackages/checkouts/firebase-ios-sdk/Crashlytics/run" || echo "warning: Crashlytics dSYM upload failed"
+          fi
     entitlements:
       path: App/ThinkOfMe.entitlements
       properties:
@@ -101,7 +115,9 @@ targets:
         SWIFT_VERSION: "5.0"
         SWIFT_STRICT_CONCURRENCY: targeted
         LOCALIZATION_PREFERS_STRING_CATALOGS: YES
-        ENABLE_USER_SCRIPT_SANDBOXING: YES
+        # The Crashlytics dSYM upload script reads the package checkout, outside the sandbox.
+        ENABLE_USER_SCRIPT_SANDBOXING: NO
+        DEBUG_INFORMATION_FORMAT: dwarf-with-dsym
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1"
 

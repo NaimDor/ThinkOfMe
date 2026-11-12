@@ -15,7 +15,8 @@ Languages: English, Hebrew, Arabic, Russian (right-to-left layouts included).
   <img src="docs/screenshots/android/home_he.png" width="200" alt="Home in Hebrew">
 </p>
 
-See [`docs/PLAN.md`](docs/PLAN.md) for the product and engineering plan.
+See [`docs/PLAN.md`](docs/PLAN.md) for the product and engineering plan and
+[`docs/LAUNCH.md`](docs/LAUNCH.md) for what's left before launch.
 
 ## Repository
 
@@ -23,7 +24,7 @@ See [`docs/PLAN.md`](docs/PLAN.md) for the product and engineering plan.
 |---|---|
 | `android/` | Compose app: `app`, `core/{model,data,designsystem,ui}`, `feature/{home,wishes,circles,occasions,account}` |
 | `ios/` | SwiftUI app (XcodeGen `project.yml`), `Packages/Core` and `Packages/DesignSystem` |
-| `backend/` | Firestore/Storage security rules, indexes, Cloud Functions (TypeScript) and their tests |
+| `backend/` | Firestore/Storage security rules, indexes, Cloud Functions (TypeScript) and their tests; `hosting/` web pages (invites, privacy, terms, support) |
 | `design/` | `tokens.json` (colors, type, spacing, motion), display fonts, token generator |
 | `scripts/` | `sync-strings.py`: Android strings → iOS String Catalog |
 | `docs/` | Plan and screenshots |
