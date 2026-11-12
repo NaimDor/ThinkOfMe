@@ -81,9 +81,14 @@ jobs:
           printf '%s' "$SERVICE_ACCOUNT" > "$RUNNER_TEMP/sa.json"
           gcloud auth activate-service-account --key-file="$RUNNER_TEMP/sa.json" --quiet
           value="${ANTHROPIC_API_KEY:-not-configured}"
-          if ! gcloud secrets describe ANTHROPIC_API_KEY --project "$PROJECT" --format=none 2>/dev/null; then
-            gcloud secrets create ANTHROPIC_API_KEY --project "$PROJECT" --replication-policy=automatic --quiet --format=none
-          fi
+          # Secret Manager is off in a new project; switching it on takes a minute to reach all of Google.
+          gcloud services enable secretmanager.googleapis.com --project "$PROJECT" --quiet
+          for attempt in 1 2 3 4 5 6 7 8; do
+            if gcloud secrets describe ANTHROPIC_API_KEY --project "$PROJECT" --format=none 2>/dev/null; then break; fi
+            if gcloud secrets create ANTHROPIC_API_KEY --project "$PROJECT" --replication-policy=automatic --quiet --format=none 2>/tmp/err; then break; fi
+            if [ "$attempt" = 8 ]; then cat /tmp/err; exit 1; fi
+            echo "Secret Manager not ready yet, retrying in 15s…"; sleep 15
+          done
           current=$(gcloud secrets versions access latest --secret ANTHROPIC_API_KEY --project "$PROJECT" 2>/dev/null || true)
           if [ "$current" != "$value" ]; then
             printf '%s' "$value" | gcloud secrets versions add ANTHROPIC_API_KEY --project "$PROJECT" --data-file=- --quiet --format=none
