@@ -39,6 +39,14 @@ Status legend: **[me]** = code/config I do, **[you]** = needs your accounts, dec
 
 ## C. After launch (v1.1+)
 
+**ThinkOfMe Plus (decided):** subscription, about $1.99/month or $14.99/year: no ads +
+"Find me the best price" (Claude with web search, results shared per wish for a few
+hours, monthly cap per subscriber, store / price / shipping / link / checked-at shown,
+well-known stores in the user's country) + later price-drop alerts. Needs StoreKit 2 and
+Play Billing with server-side entitlement, the paid apps agreement in App Store Connect,
+and subscription products in both stores. Affiliate links on results as a later step.
+
+
 Web viewer for invitees without the app · group chat & chip-in for big gifts · "Remove ads" purchase ·
 affiliate links · home-screen widgets · activity feed screen · QR invites · email-link sign-in ·
 price-drop hints · Hebrew-calendar birthdays · make the repository private (watch macOS CI minutes).
