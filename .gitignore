@@ -47,3 +47,7 @@ ios/App/Info.plist
 ios/App/ThinkOfMe.entitlements
 **/.gradle/
 android/build-logic/**/build/
+
+# Python
+__pycache__/
+*.pyc
