@@ -1,0 +1,37 @@
+name: TestFlight external testing
+
+# Fills in TestFlight Test Information and review details, creates the external
+# "Friends" group with a public link, adds the newest build and submits it for
+# Beta App Review. Uses the same App Store Connect API key as the TestFlight upload.
+on:
+  workflow_dispatch:
+    inputs:
+      group:
+        description: External tester group name
+        default: Friends
+      build:
+        description: Build number (empty = newest processed build)
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  external:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+      - name: Install
+        run: pip install --quiet "pyjwt[crypto]==2.10.1" "requests==2.32.5"
+      - name: Prepare external testing
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          REVIEW_CONTACT: ${{ secrets.TESTFLIGHT_REVIEW_CONTACT }}
+          FEEDBACK_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+          BUNDLE_ID: com.thinkofme.app
+          GROUP_NAME: ${{ inputs.group }}
+          BUILD_NUMBER: ${{ inputs.build }}
+        run: python3 scripts/testflight_external.py
