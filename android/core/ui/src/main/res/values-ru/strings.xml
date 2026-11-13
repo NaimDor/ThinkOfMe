@@ -110,6 +110,10 @@
     <string name="scan_price">Читаем ценник…</string>
     <string name="scan_store">Ищем магазин…</string>
     <string name="filled_from_photo">Заполнили по фото. Проверьте детали.</string>
+    <string name="clear_photo_details">Очистить</string>
+    <string name="clear_photo_title">Очистить данные из этого фото?</string>
+    <string name="clear_photo_body">Мы заполнили некоторые поля по этому фото. Очистить их тоже? То, что вы изменили сами, останется.</string>
+    <string name="keep_photo_details">Оставить</string>
     <string name="find_online">Найти в интернете</string>
     <string name="link_failed">Не удалось прочитать страницу. Заполните данные вручную.</string>
     <string name="visible_all">Все мои круги</string>

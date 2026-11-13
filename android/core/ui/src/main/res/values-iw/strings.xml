@@ -107,6 +107,10 @@
     <string name="scan_price">קוראים את המחיר…</string>
     <string name="scan_store">מחפשים את החנות…</string>
     <string name="filled_from_photo">מילאנו פרטים מהתמונה. כדאי לבדוק שהכול נכון.</string>
+    <string name="clear_photo_details">ניקוי הפרטים</string>
+    <string name="clear_photo_title">לנקות את הפרטים מהתמונה?</string>
+    <string name="clear_photo_body">מילאנו פרטים לפי התמונה הזו. לנקות גם אותם? מה ששינית בעצמך יישאר.</string>
+    <string name="keep_photo_details">להשאיר</string>
     <string name="find_online">חיפוש באינטרנט</string>
     <string name="link_failed">לא הצלחנו לקרוא את הדף. אפשר למלא את הפרטים ידנית.</string>
     <string name="visible_all">כל המעגלים שלי</string>

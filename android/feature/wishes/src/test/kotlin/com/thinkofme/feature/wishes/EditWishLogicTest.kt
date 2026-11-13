@@ -50,4 +50,29 @@ class EditWishLogicTest {
         assertEquals("Hario V60", EditWishViewModel.mergePhotoDetails(com.thinkofme.core.model.WishDraft(), details).title)
         assertEquals(false, EditWishViewModel.needsDetails(com.thinkofme.core.model.WishDraft(title = "a", priceText = "1", store = "b")))
     }
+
+    @Test
+    fun `clearing takes back only what the photo filled and the user kept`() {
+        val before = com.thinkofme.core.model.WishDraft(title = "Mine", currency = "USD")
+        val details = com.thinkofme.core.data.PhotoDetails(
+            isProduct = true, title = "Ignored", store = "KSP", priceAmount = 1299.0, priceCurrency = "ILS", note = "Black",
+        )
+        val merged = EditWishViewModel.mergePhotoDetails(before, details)
+        val fill = EditWishViewModel.photoFillBetween(before, merged)!!
+        assertNull(fill.title)
+        // The user then edits the note by hand.
+        val edited = merged.copy(note = "Black, size M")
+        val cleared = EditWishViewModel.clearPhotoFill(edited, fill)
+        assertEquals("Mine", cleared.title)
+        assertEquals("", cleared.priceText)
+        assertEquals("USD", cleared.currency)
+        assertEquals("", cleared.store)
+        assertEquals("Black, size M", cleared.note)
+    }
+
+    @Test
+    fun `nothing filled means nothing to clear`() {
+        val draft = com.thinkofme.core.model.WishDraft(title = "a", priceText = "1", store = "b", note = "c")
+        assertNull(EditWishViewModel.photoFillBetween(draft, draft))
+    }
 }

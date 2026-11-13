@@ -17,7 +17,13 @@ final class EditWishModel {
     /// The photo being read, shown under the magnifying glass while it works.
     private(set) var readingPhotoImage: UIImage?
     /// Some fields were filled in from the photo.
-    private(set) var filledFromPhoto = false
+    /// What was filled in from the photo, so it can be cleared again.
+    private(set) var photoFill: PhotoFill?
+    /// Upload URL of the photo the details were read from.
+    private var analyzedPhotoURL: URL?
+    private var readTask: Task<Void, Never>?
+    /// The photo the details came from was removed: ask whether to clear them too.
+    var askClearAfterRemove = false
     /// A web search that should find the photographed product, when no link is known.
     private(set) var photoSearchQuery: String?
     private(set) var circles: [GiftCircle] = []
@@ -67,10 +73,12 @@ final class EditWishModel {
         defer { uploadingPhoto = false }
         guard let data = try? await item.loadTransferable(type: Data.self),
               let jpeg = Self.encode(data) else { failed = true; return }
-        if draft.needsDetails && !readingPhoto { Task { await readPhoto(jpeg) } }
+        let reads = draft.needsDetails && !readingPhoto
+        if reads { readTask = Task { await readPhoto(jpeg) } }
         do {
             let url = try await backend.uploadPhoto(jpeg, wishId: wishId)
             draft.imageURLs.insert(url, at: 0)
+            if reads { analyzedPhotoURL = url }
         } catch {
             report(error, "uploadPhoto")
             failed = true
@@ -84,18 +92,34 @@ final class EditWishModel {
         let locale = Locale.current.identifier
         let details: PhotoDetails
         do { details = try await backend.analyzePhoto(jpeg, locale: locale) } catch {
-            report(error, "analyzePhoto")
+            if !Task.isCancelled { report(error, "analyzePhoto") }
             return
         }
-        guard details.isProduct else { return }
+        // The photo was removed while it was being read.
+        guard !Task.isCancelled, details.isProduct else { return }
         let merged = draft.merging(details)
-        filledFromPhoto = merged != draft
+        photoFill = PhotoFill(before: draft, merged: merged)
         draft = merged
         photoSearchQuery = draft.url.isEmpty ? details.searchQuery : nil
         if draft.url.hasPrefix("http"), draft.imageURLs.count <= 1 { await unfurl() }
     }
 
-    func removePhoto(_ url: URL) { draft.imageURLs.removeAll { $0 == url } }
+    /// Removing the photo the details came from stops a read in progress, or offers to clear them.
+    func removePhoto(_ url: URL) {
+        draft.imageURLs.removeAll { $0 == url }
+        guard url == analyzedPhotoURL else { return }
+        analyzedPhotoURL = nil
+        if readingPhoto { readTask?.cancel() }
+        askClearAfterRemove = photoFill != nil
+    }
+
+    /// Takes back what the photo filled in (fields the user has since edited stay).
+    func clearPhotoDetails() {
+        if let photoFill { draft = draft.clearing(photoFill) }
+        photoFill = nil
+        photoSearchQuery = nil
+        askClearAfterRemove = false
+    }
 
     /// Longest side 1600 px, JPEG quality 0.85: sharp on a phone, quick to upload.
     nonisolated static func encode(_ data: Data, maxSide: CGFloat = 1600) -> Data? {
@@ -209,6 +233,12 @@ struct EditWishView: View {
                 ToolbarItem(placement: .cancellationAction) { Button(L("action_cancel")) { dismiss() } }
             }
             .alert(L("error_generic"), isPresented: $model.failed) { Button("OK") {} }
+            .alert(L("clear_photo_title"), isPresented: $model.askClearAfterRemove) {
+                Button(L("clear_photo_details"), role: .destructive) { withAnimation { model.clearPhotoDetails() } }
+                Button(L("keep_photo_details"), role: .cancel) {}
+            } message: {
+                Text(L("clear_photo_body"))
+            }
             .task { await model.load() }
         }
     }
@@ -319,10 +349,13 @@ private struct PhotoReadingStatus: View {
             if model.readingPhoto, let image = model.readingPhotoImage {
                 PhotoScanner(image: image).transition(.opacity.combined(with: .scale(scale: 0.97)))
             } else {
-                if model.filledFromPhoto {
+                if model.photoFill != nil {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles").foregroundStyle(AppColor.accentText)
                         Text(L("filled_from_photo")).textStyle(.caption).foregroundStyle(AppColor.inkMuted)
+                        Spacer(minLength: Space.xs)
+                        Button(L("clear_photo_details")) { withAnimation { model.clearPhotoDetails() } }
+                            .textStyle(.callout).fontWeight(.semibold).foregroundStyle(AppColor.accentText)
                     }
                 }
                 if let query = model.photoSearchQuery,

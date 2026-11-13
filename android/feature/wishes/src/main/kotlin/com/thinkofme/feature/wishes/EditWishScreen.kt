@@ -102,10 +102,30 @@ fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () ->
                     onPicked = { uri -> encodePhoto(context, uri)?.let(vm::addPhoto) },
                     onRemove = vm::removePhoto,
                 )
-                PhotoReadingStatus(state, onFindOnline = { query ->
-                    val uri = android.net.Uri.parse("https://www.google.com/search?q=" + android.net.Uri.encode(query))
-                    runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri)) }
-                })
+                PhotoReadingStatus(
+                    state,
+                    onFindOnline = { query ->
+                        val uri = android.net.Uri.parse("https://www.google.com/search?q=" + android.net.Uri.encode(query))
+                        runCatching { context.startActivity(android.content.Intent(android.content.Intent.ACTION_VIEW, uri)) }
+                    },
+                    onClear = vm::clearPhotoDetails,
+                )
+                if (state.askClearAfterRemove) {
+                    androidx.compose.material3.AlertDialog(
+                        onDismissRequest = vm::keepPhotoDetails,
+                        title = { Text(stringResource(R.string.clear_photo_title)) },
+                        text = { Text(stringResource(R.string.clear_photo_body)) },
+                        confirmButton = {
+                            androidx.compose.material3.TextButton(vm::clearPhotoDetails) {
+                                Text(stringResource(R.string.clear_photo_details), color = AppTheme.colors.accentText)
+                            }
+                        },
+                        dismissButton = {
+                            androidx.compose.material3.TextButton(vm::keepPhotoDetails) { Text(stringResource(R.string.keep_photo_details)) }
+                        },
+                        containerColor = AppTheme.colors.surface,
+                    )
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(AppSpace.xs)) {
                     ChoiceChip(stringResource(R.string.field_kind_product), draft.kind == WishKind.PRODUCT, { vm.update { copy(kind = WishKind.PRODUCT) } }, icon = AppIcons.Gift)
@@ -193,18 +213,24 @@ private fun Section(title: String, content: @Composable () -> Unit) {
 /** Photos of the wish: an "add" tile (photo picker) followed by the current images. */
 /** "Reading the photo…" while it works, then what it filled in and a way to find the product online. */
 @Composable
-private fun PhotoReadingStatus(state: EditWishUiState, onFindOnline: (String) -> Unit) {
+private fun PhotoReadingStatus(state: EditWishUiState, onFindOnline: (String) -> Unit, onClear: () -> Unit) {
     val jpeg = state.readingPhotoJpeg
     val photo = jpeg?.let { rememberPhotoBitmap(it) }
     AnimatedVisibility(state.readingPhoto && photo != null) {
         if (photo != null) PhotoScanner(photo)
     }
-    AnimatedVisibility(!state.readingPhoto && (state.filledFromPhoto || state.photoSearchQuery != null)) {
+    AnimatedVisibility(!state.readingPhoto && (state.photoFill != null || state.photoSearchQuery != null)) {
         Column(verticalArrangement = Arrangement.spacedBy(AppSpace.xs)) {
-            if (state.filledFromPhoto) {
+            if (state.photoFill != null) {
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(AppIcons.Sparkle, null, tint = AppTheme.colors.accentText, modifier = Modifier.size(16.dp))
-                    Text(stringResource(R.string.filled_from_photo), style = AppTheme.type.caption, color = AppTheme.colors.inkMuted)
+                    Text(
+                        stringResource(R.string.filled_from_photo),
+                        style = AppTheme.type.caption,
+                        color = AppTheme.colors.inkMuted,
+                        modifier = Modifier.weight(1f),
+                    )
+                    TextAction(stringResource(R.string.clear_photo_details), onClear)
                 }
             }
             val query = state.photoSearchQuery

@@ -159,6 +159,22 @@ class MyListViewModel @Inject constructor(wishes: WishRepository, profiles: Prof
 
 // ---------- edit wish ----------
 
+/**
+ * The values a photo read put into the draft (null = that field was not filled), plus the
+ * currency it replaced. Clearing only removes values the user has not changed since.
+ */
+data class PhotoFill(
+    val title: String? = null,
+    val priceText: String? = null,
+    val currency: String? = null,
+    val previousCurrency: String? = null,
+    val store: String? = null,
+    val url: String? = null,
+    val note: String? = null,
+) {
+    val isEmpty: Boolean get() = listOf(title, priceText, store, url, note).all { it == null }
+}
+
 data class EditWishUiState(
     val draft: WishDraft = WishDraft(),
     val circles: List<Circle> = emptyList(),
@@ -170,8 +186,12 @@ data class EditWishUiState(
     val readingPhoto: Boolean = false,
     /** The photo being read, shown under the magnifying glass while it works. */
     val readingPhotoJpeg: ByteArray? = null,
-    /** Some fields were filled in from the photo. */
-    val filledFromPhoto: Boolean = false,
+    /** What was filled in from the photo, so it can be cleared again. Null when nothing was. */
+    val photoFill: PhotoFill? = null,
+    /** Upload URL of the photo the details were read from. */
+    val analyzedPhotoUrl: String? = null,
+    /** The photo the details came from was removed: ask whether to clear them too. */
+    val askClearAfterRemove: Boolean = false,
     /** A web search that should find the photographed product, when no link is known. */
     val photoSearchQuery: String? = null,
     val saving: Boolean = false,
@@ -254,19 +274,29 @@ class EditWishViewModel @Inject constructor(
     /** Adds a photo (already downscaled to a JPEG) to the wish, and reads details from it. */
     fun addPhoto(jpeg: ByteArray) {
         if (_state.value.draft.imageUrls.size >= 8) return
-        if (needsDetails(_state.value.draft) && !_state.value.readingPhoto) readPhoto(jpeg)
+        val reads = needsDetails(_state.value.draft) && !_state.value.readingPhoto
+        if (reads) readPhoto(jpeg)
         viewModelScope.launch {
             _state.update { it.copy(uploadingPhoto = true, error = false) }
             val url = runCatching { wishes.uploadPhoto(wishId, jpeg) }.getOrNull()
             _state.update { s ->
-                if (url == null) s.copy(uploadingPhoto = false, error = true)
-                else s.copy(uploadingPhoto = false, draft = s.draft.copy(imageUrls = listOf(url) + s.draft.imageUrls))
+                if (url == null) {
+                    s.copy(uploadingPhoto = false, error = true)
+                } else {
+                    s.copy(
+                        uploadingPhoto = false,
+                        draft = s.draft.copy(imageUrls = listOf(url) + s.draft.imageUrls),
+                        analyzedPhotoUrl = if (reads) url else s.analyzedPhotoUrl,
+                    )
+                }
             }
         }
     }
 
+    private var readJob: kotlinx.coroutines.Job? = null
+
     private fun readPhoto(jpeg: ByteArray) {
-        viewModelScope.launch {
+        readJob = viewModelScope.launch {
             _state.update { it.copy(readingPhoto = true, readingPhotoJpeg = jpeg) }
             val details = runCatching { wishes.analyzePhoto(jpeg, java.util.Locale.getDefault().toLanguageTag()) }.getOrNull()
             _state.update { s ->
@@ -277,7 +307,7 @@ class EditWishViewModel @Inject constructor(
                     s.copy(
                         readingPhoto = false,
                         readingPhotoJpeg = null,
-                        filledFromPhoto = merged != s.draft,
+                        photoFill = photoFillBetween(s.draft, merged),
                         photoSearchQuery = details.searchQuery.takeIf { merged.url.isBlank() },
                         draft = merged,
                     )
@@ -287,7 +317,32 @@ class EditWishViewModel @Inject constructor(
         }
     }
 
-    fun removePhoto(url: String) = update { copy(imageUrls = imageUrls - url) }
+    /** Removing the photo the details came from stops a read in progress, or offers to clear them. */
+    fun removePhoto(url: String) {
+        val s = _state.value
+        val isSource = url == s.analyzedPhotoUrl
+        if (isSource && s.readingPhoto) {
+            readJob?.cancel()
+            _state.update { it.copy(readingPhoto = false, readingPhotoJpeg = null, analyzedPhotoUrl = null) }
+        }
+        _state.update {
+            it.copy(
+                draft = it.draft.copy(imageUrls = it.draft.imageUrls - url),
+                askClearAfterRemove = isSource && it.photoFill != null,
+                analyzedPhotoUrl = if (isSource) null else it.analyzedPhotoUrl,
+            )
+        }
+    }
+
+    /** Takes back what the photo filled in (fields the user has since edited stay). */
+    fun clearPhotoDetails() {
+        _state.update { s ->
+            val fill = s.photoFill ?: return@update s.copy(askClearAfterRemove = false)
+            s.copy(draft = clearPhotoFill(s.draft, fill), photoFill = null, photoSearchQuery = null, askClearAfterRemove = false)
+        }
+    }
+
+    fun keepPhotoDetails() = _state.update { it.copy(askClearAfterRemove = false) }
 
     fun save() {
         val s = _state.value
@@ -309,6 +364,36 @@ class EditWishViewModel @Inject constructor(
         /** Only spend a photo read when there is something left to fill in. */
         fun needsDetails(draft: WishDraft): Boolean =
             draft.title.isBlank() || draft.priceText.isBlank() || draft.store.isBlank()
+
+        /** What [merged] filled in compared with [before], or null if nothing changed. */
+        fun photoFillBetween(before: WishDraft, merged: WishDraft): PhotoFill? {
+            fun filled(old: String, new: String) = new.takeIf { old.isBlank() && new.isNotBlank() }
+            val priceFilled = filled(before.priceText, merged.priceText)
+            val fill = PhotoFill(
+                title = filled(before.title, merged.title),
+                priceText = priceFilled,
+                currency = merged.currency.takeIf { priceFilled != null },
+                previousCurrency = before.currency.takeIf { priceFilled != null },
+                store = filled(before.store, merged.store),
+                url = filled(before.url, merged.url),
+                note = filled(before.note, merged.note),
+            )
+            return fill.takeUnless { it.isEmpty }
+        }
+
+        /** Empties each field still holding what the photo put there. */
+        fun clearPhotoFill(draft: WishDraft, fill: PhotoFill): WishDraft {
+            fun clear(current: String, filled: String?) = if (filled != null && current == filled) "" else current
+            val priceCleared = fill.priceText != null && draft.priceText == fill.priceText
+            return draft.copy(
+                title = clear(draft.title, fill.title),
+                priceText = clear(draft.priceText, fill.priceText),
+                currency = if (priceCleared && draft.currency == fill.currency) fill.previousCurrency ?: draft.currency else draft.currency,
+                store = clear(draft.store, fill.store),
+                url = clear(draft.url, fill.url),
+                note = clear(draft.note, fill.note),
+            )
+        }
 
         /** Fills empty fields from what was read off the photo. Anything the user typed wins. */
         fun mergePhotoDetails(draft: WishDraft, details: com.thinkofme.core.data.PhotoDetails): WishDraft {

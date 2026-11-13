@@ -116,6 +116,10 @@
     <string name="scan_price">نقرأ السعر…</string>
     <string name="scan_store">نبحث عن المتجر…</string>
     <string name="filled_from_photo">عبّأنا التفاصيل من صورتك. تحقّق منها.</string>
+    <string name="clear_photo_details">امسح التفاصيل</string>
+    <string name="clear_photo_title">مسح التفاصيل المأخوذة من هذه الصورة؟</string>
+    <string name="clear_photo_body">عبّأنا بعض التفاصيل من هذه الصورة. هل نمسحها أيضًا؟ ما غيّرته بنفسك سيبقى.</string>
+    <string name="keep_photo_details">أبقِها</string>
     <string name="find_online">ابحث عنه على الإنترنت</string>
     <string name="link_failed">تعذّرت قراءة الصفحة. أدخل التفاصيل بنفسك.</string>
     <string name="visible_all">كل دوائري</string>

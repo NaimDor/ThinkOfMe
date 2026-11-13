@@ -126,3 +126,29 @@ import Testing
         #expect(!full.needsDetails)
     }
 }
+
+@Suite struct PhotoFillTests {
+    @Test func clearsOnlyWhatThePhotoFilledAndTheUserKept() throws {
+        var before = WishDraft()
+        before.title = "Mine"
+        before.currency = "USD"
+        let merged = before.merging(PhotoDetails(isProduct: true, title: "Ignored", store: "KSP",
+                                                 price: Money(amount: 1299, currency: "ILS"), note: "Black"))
+        let fill = try #require(PhotoFill(before: before, merged: merged))
+        #expect(fill.title == nil)
+        var edited = merged
+        edited.note = "Black, size M"
+        let cleared = edited.clearing(fill)
+        #expect(cleared.title == "Mine")
+        #expect(cleared.priceText.isEmpty)
+        #expect(cleared.currency == "USD")
+        #expect(cleared.store.isEmpty)
+        #expect(cleared.note == "Black, size M")
+    }
+
+    @Test func nothingFilledMeansNothingToClear() {
+        var draft = WishDraft()
+        draft.title = "a"; draft.priceText = "1"; draft.store = "b"
+        #expect(PhotoFill(before: draft, merged: draft) == nil)
+    }
+}

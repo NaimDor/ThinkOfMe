@@ -273,3 +273,47 @@ extension WishDraft {
         return draft
     }
 }
+
+/// The values a photo read put into a draft (nil = that field was not filled), plus the currency
+/// it replaced. Clearing only removes values the user has not changed since.
+public struct PhotoFill: Equatable, Sendable {
+    public var title: String?
+    public var priceText: String?
+    public var currency: String?
+    public var previousCurrency: String?
+    public var store: String?
+    public var url: String?
+    public var note: String?
+
+    public var isEmpty: Bool { [title, priceText, store, url, note].allSatisfy { $0 == nil } }
+
+    /// What `merged` filled in compared with `before`, or nil if nothing changed.
+    public init?(before: WishDraft, merged: WishDraft) {
+        func filled(_ old: String, _ new: String) -> String? { old.isEmpty && !new.isEmpty ? new : nil }
+        title = filled(before.title, merged.title)
+        priceText = filled(before.priceText, merged.priceText)
+        currency = priceText != nil ? merged.currency : nil
+        previousCurrency = priceText != nil ? before.currency : nil
+        store = filled(before.store, merged.store)
+        url = filled(before.url, merged.url)
+        note = filled(before.note, merged.note)
+        if isEmpty { return nil }
+    }
+}
+
+extension WishDraft {
+    /// Empties each field still holding what the photo put there.
+    public func clearing(_ fill: PhotoFill) -> WishDraft {
+        var draft = self
+        func clear(_ current: String, _ filled: String?) -> String { filled != nil && current == filled ? "" : current }
+        let priceCleared = fill.priceText != nil && draft.priceText == fill.priceText
+        draft.title = clear(draft.title, fill.title)
+        draft.priceText = clear(draft.priceText, fill.priceText)
+        if priceCleared, draft.currency == fill.currency, let previous = fill.previousCurrency { draft.currency = previous }
+        draft.store = clear(draft.store, fill.store)
+        draft.url = clear(draft.url, fill.url)
+        draft.note = clear(draft.note, fill.note)
+        return draft
+    }
+}
+

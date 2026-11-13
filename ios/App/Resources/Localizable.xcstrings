@@ -1045,6 +1045,93 @@
         }
       }
     },
+    "clear_photo_body": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عبّأنا بعض التفاصيل من هذه الصورة. هل نمسحها أيضًا؟ ما غيّرته بنفسك سيبقى."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "We filled in some details from this photo. Clear them too? Anything you changed yourself stays."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "מילאנו פרטים לפי התמונה הזו. לנקות גם אותם? מה ששינית בעצמך יישאר."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Мы заполнили некоторые поля по этому фото. Очистить их тоже? То, что вы изменили сами, останется."
+          }
+        }
+      }
+    },
+    "clear_photo_details": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "امسح التفاصيل"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear details"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "ניקוי הפרטים"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Очистить"
+          }
+        }
+      }
+    },
+    "clear_photo_title": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "مسح التفاصيل المأخوذة من هذه الصورة؟"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Clear the details from this photo?"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "לנקות את הפרטים מהתמונה?"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Очистить данные из этого фото?"
+          }
+        }
+      }
+    },
     "continue_apple": {
       "extractionState": "manual",
       "localizations": {
@@ -2552,6 +2639,35 @@
           "stringUnit": {
             "state": "translated",
             "value": "Вступить по коду"
+          }
+        }
+      }
+    },
+    "keep_photo_details": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "أبقِها"
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Keep"
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "להשאיר"
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Оставить"
           }
         }
       }
