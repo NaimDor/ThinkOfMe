@@ -54,7 +54,8 @@ public protocol Backend: AnyObject {
     func uploadPhoto(_ jpeg: Data, wishId: String) async throws -> URL
     func markReceived(_ wishId: String) async throws
     func deleteWish(_ wishId: String) async throws
-    func unfurl(_ url: URL) async throws -> LinkPreview
+    /// Reads a product page. With a wishId, its photos are copied into that wish's storage.
+    func unfurl(_ url: URL, wishId: String?) async throws -> LinkPreview
     /// Reads product name, store, price and more from a JPEG photo.
     func analyzePhoto(_ jpeg: Data, locale: String) async throws -> PhotoDetails
 

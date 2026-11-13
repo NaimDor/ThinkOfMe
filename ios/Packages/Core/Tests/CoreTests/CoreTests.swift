@@ -152,3 +152,25 @@ import Testing
         #expect(PhotoFill(before: draft, merged: draft) == nil)
     }
 }
+
+@Suite struct LinkFillTests {
+    @Test func linkDetailsFillAndClearWithTheirPhotos() throws {
+        var before = WishDraft()
+        before.title = "Mine"
+        before.currency = "USD"
+        let photos = [URL(string: "https://storage/a.jpg")!, URL(string: "https://storage/b.jpg")!]
+        let link = LinkPreview(url: URL(string: "https://shop.example.com/p/1")!, title: "Aura X2", imageURLs: photos,
+                               siteName: "Soundhouse", price: Money(amount: 349.9, currency: "ILS"), note: "Black")
+        let merged = before.merging(link)
+        #expect(merged.title == "Mine")
+        #expect(merged.currency == "ILS")
+        #expect(merged.imageURLs == photos)
+        #expect(merged.note == "Black")
+        let fill = try #require(PhotoFill(before: before, merged: merged))
+        let cleared = merged.clearing(fill)
+        #expect(cleared.imageURLs.isEmpty)
+        #expect(cleared.store.isEmpty)
+        #expect(cleared.currency == "USD")
+        #expect(cleared.title == "Mine")
+    }
+}

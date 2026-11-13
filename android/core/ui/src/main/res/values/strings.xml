@@ -109,6 +109,7 @@
     <string name="scan_brand">Spotting the brand…</string>
     <string name="scan_price">Reading the price tag…</string>
     <string name="scan_store">Finding the store…</string>
+    <string name="filled_from_link">Filled in from the link. Check the details.</string>
     <string name="filled_from_photo">Filled in from your photo. Check the details.</string>
     <string name="clear_photo_details">Clear details</string>
     <string name="clear_photo_title">Clear the details from this photo?</string>

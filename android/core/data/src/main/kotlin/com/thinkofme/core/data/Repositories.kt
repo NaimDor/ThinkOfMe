@@ -73,6 +73,8 @@ data class LinkPreview(
     val siteName: String?,
     val priceAmount: Double?,
     val priceCurrency: String?,
+    /** A short line with details a gift buyer needs (size, color), when the page has one. */
+    val note: String? = null,
 )
 
 /** What could be read from a wish photo; every field is optional. */
@@ -105,7 +107,8 @@ interface WishRepository {
     suspend fun uploadPhoto(wishId: String, jpeg: ByteArray): String
     suspend fun markReceived(wishId: String)
     suspend fun delete(wishId: String)
-    suspend fun unfurl(url: String): LinkPreview
+    /** Reads a product page. With [wishId], its photos are copied into that wish's storage. */
+    suspend fun unfurl(url: String, wishId: String? = null): LinkPreview
 
     /** Reads product name, store, price and more from a photo (JPEG). */
     suspend fun analyzePhoto(jpeg: ByteArray, locale: String): PhotoDetails

@@ -197,15 +197,18 @@ const pinnedAgent = new Agent({
 const MAX_BYTES = 1_500_000;
 const USER_AGENT = "Mozilla/5.0 (compatible; ThinkOfMeLinkPreview/1.0)";
 
-/** Fetch a page safely (validated redirects, size and time limits) and parse it. */
-export async function unfurl(raw: string): Promise<LinkMetadata> {
+/**
+ * Fetch a public URL safely: every redirect is re-validated, connections refuse
+ * private addresses, and the body is size- and time-limited.
+ */
+export async function safeFetch(raw: string, accept: string, maxBytes: number): Promise<{ url: string; contentType: string; body: Buffer }> {
   let current = await assertPublicUrl(raw);
   for (let hop = 0; hop < 4; hop++) {
     const response = await fetch(current, {
       dispatcher: pinnedAgent,
       redirect: "manual",
       signal: AbortSignal.timeout(8000),
-      headers: { "user-agent": USER_AGENT, accept: "text/html,application/xhtml+xml", "accept-language": "en,he;q=0.8,ar;q=0.6,ru;q=0.6" },
+      headers: { "user-agent": USER_AGENT, accept, "accept-language": "en,he;q=0.8,ar;q=0.6,ru;q=0.6" },
     });
     if (response.status >= 300 && response.status < 400) {
       const location = response.headers.get("location");
@@ -214,16 +217,79 @@ export async function unfurl(raw: string): Promise<LinkMetadata> {
       continue;
     }
     if (!response.ok) throw new UnfurlError(`http-${response.status}`);
-    const type = response.headers.get("content-type") ?? "";
-    if (!type.includes("html")) throw new UnfurlError("not-html");
-    const html = await readLimited(response, MAX_BYTES);
-    return parseProductMetadata(html, current.toString());
+    const contentType = response.headers.get("content-type") ?? "";
+    return { url: current.toString(), contentType, body: await readLimited(response, maxBytes) };
   }
   throw new UnfurlError("too-many-redirects");
 }
 
-async function readLimited(response: { body: ReadableStream<Uint8Array> | null }, maxBytes: number): Promise<string> {
-  if (!response.body) return "";
+/** Fetch a product page and return its HTML and final URL. */
+export async function fetchPage(raw: string): Promise<{ html: string; url: string }> {
+  const page = await safeFetch(raw, "text/html,application/xhtml+xml", MAX_BYTES);
+  if (!page.contentType.includes("html")) throw new UnfurlError("not-html");
+  return { html: page.body.toString("utf8"), url: page.url };
+}
+
+/** Fetch a page safely (validated redirects, size and time limits) and parse it. */
+export async function unfurl(raw: string): Promise<LinkMetadata> {
+  const page = await fetchPage(raw);
+  return parseProductMetadata(page.html, page.url);
+}
+
+const MAX_DIGEST_TEXT = 12_000;
+const MAX_CANDIDATES = 12;
+
+/**
+ * What the AI fallback reads from a page: its visible text (headings and prices
+ * survive; scripts, menus and footers are dropped) and the images that could be
+ * the product photo, largest and most product-like first.
+ */
+export function pageDigest(html: string, pageUrl: string, known: string[] = []): { text: string; images: string[] } {
+  const $ = load(html);
+  const title = $("title").first().text().trim();
+  const description = $('meta[name="description"], meta[property="og:description"]').first().attr("content")?.trim() ?? "";
+  $("script, style, noscript, svg, iframe, nav, footer, header form, [aria-hidden=true]").remove();
+  const body = $("main").first().text() || $("body").text();
+  const text = [title, description, body].join("\n").replace(/[ \t]+/g, " ").replace(/\s*\n\s*/g, "\n").trim().slice(0, MAX_DIGEST_TEXT);
+
+  const scored: { url: string; score: number }[] = known.map((url, index) => ({ url, score: 100 - index }));
+  $("img").each((_, element) => {
+    const el = $(element);
+    const src = el.attr("data-src") ?? el.attr("data-zoom-image") ?? el.attr("src") ?? el.attr("srcset")?.split(",").pop()?.trim().split(" ")[0];
+    const url = absolute(src, pageUrl);
+    if (!url || url.startsWith("data:") || /\.svg(\?|$)|sprite|logo|icon|avatar|placeholder|pixel/i.test(url)) return;
+    const hint = `${el.attr("alt") ?? ""} ${el.attr("class") ?? ""} ${el.attr("id") ?? ""} ${el.parent().attr("class") ?? ""}`.toLowerCase();
+    const width = Number(el.attr("width")) || 0;
+    let score = Math.min(width, 1200) / 40;
+    if (/product|gallery|zoom|main|hero|primary/.test(hint)) score += 30;
+    if (width > 0 && width < 120) score -= 40;
+    scored.push({ url, score });
+  });
+  const images: string[] = [];
+  for (const entry of scored.sort((a, b) => b.score - a.score)) {
+    if (!images.includes(entry.url)) images.push(entry.url);
+    if (images.length >= MAX_CANDIDATES) break;
+  }
+  return { text, images };
+}
+
+const IMAGE_TYPES = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/avif"];
+const MAX_IMAGE_BYTES = 6_000_000;
+
+/** Download an image (public hosts only). Returns null for anything that isn't a reasonable image. */
+export async function fetchImage(raw: string): Promise<{ body: Buffer; contentType: string } | null> {
+  try {
+    const image = await safeFetch(raw, "image/avif,image/webp,image/png,image/jpeg,image/*;q=0.8", MAX_IMAGE_BYTES + 1);
+    const contentType = image.contentType.split(";")[0]!.trim().toLowerCase();
+    if (!IMAGE_TYPES.includes(contentType) || image.body.length < 2_000 || image.body.length > MAX_IMAGE_BYTES) return null;
+    return { body: image.body, contentType };
+  } catch {
+    return null;
+  }
+}
+
+async function readLimited(response: { body: ReadableStream<Uint8Array> | null }, maxBytes: number): Promise<Buffer> {
+  if (!response.body) return Buffer.alloc(0);
   const reader = response.body.getReader();
   const chunks: Uint8Array[] = [];
   let total = 0;
@@ -237,5 +303,5 @@ async function readLimited(response: { body: ReadableStream<Uint8Array> | null }
       break;
     }
   }
-  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk))).toString("utf8");
+  return Buffer.concat(chunks.map((chunk) => Buffer.from(chunk)));
 }

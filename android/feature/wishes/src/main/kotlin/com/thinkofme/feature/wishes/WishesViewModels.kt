@@ -171,9 +171,26 @@ data class PhotoFill(
     val store: String? = null,
     val url: String? = null,
     val note: String? = null,
+    /** Photos added along with the details (from a link). */
+    val images: List<String>? = null,
 ) {
-    val isEmpty: Boolean get() = listOf(title, priceText, store, url, note).all { it == null }
+    val isEmpty: Boolean get() = listOf(title, priceText, store, url, note).all { it == null } && images.isNullOrEmpty()
+
+    /** Both fills together; the earlier one wins where both filled the same field. */
+    operator fun plus(other: PhotoFill?): PhotoFill = if (other == null) this else PhotoFill(
+        title = title ?: other.title,
+        priceText = priceText ?: other.priceText,
+        currency = if (priceText != null) currency else other.currency,
+        previousCurrency = if (priceText != null) previousCurrency else other.previousCurrency,
+        store = store ?: other.store,
+        url = url ?: other.url,
+        note = note ?: other.note,
+        images = (images.orEmpty() + other.images.orEmpty()).distinct().ifEmpty { null },
+    )
 }
+
+/** Where the last automatic fill came from, for the "Filled in from…" line. */
+enum class FillSource { PHOTO, LINK }
 
 data class EditWishUiState(
     val draft: WishDraft = WishDraft(),
@@ -188,6 +205,7 @@ data class EditWishUiState(
     val readingPhotoJpeg: ByteArray? = null,
     /** What was filled in from the photo, so it can be cleared again. Null when nothing was. */
     val photoFill: PhotoFill? = null,
+    val fillSource: FillSource = FillSource.PHOTO,
     /** Upload URL of the photo the details were read from. */
     val analyzedPhotoUrl: String? = null,
     /** The photo the details came from was removed: ask whether to clear them too. */
@@ -244,27 +262,43 @@ class EditWishViewModel @Inject constructor(
         copy(visibleCircleIds = toggleVisibility(visibleCircleIds, id))
     }
 
-    /** Fetch title, photo and price for the pasted link. Fields the user already typed win. */
+    private var lastUnfurledUrl: String? = null
+    private var urlJob: kotlinx.coroutines.Job? = null
+
+    /** Typing or pasting a link reads it automatically once it looks complete. */
+    fun onUrlChanged(text: String) {
+        update { copy(url = text) }
+        urlJob?.cancel()
+        val url = extractUrl(text) ?: return
+        // Wait until it looks like a whole address, so typing by hand doesn't fire half-way.
+        val host = runCatching { java.net.URI(url).host }.getOrNull() ?: return
+        if (!host.contains('.') || url == lastUnfurledUrl) return
+        urlJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(700)
+            unfurl()
+        }
+    }
+
+    /** Fetch title, photo, price and store for the link. Fields the user already typed win. */
     fun unfurl() {
-        val url = _state.value.draft.url.trim()
-        if (!url.startsWith("http")) return
+        val url = extractUrl(_state.value.draft.url.trim()) ?: return
+        if (_state.value.unfurling && url == lastUnfurledUrl) return
+        lastUnfurledUrl = url
         viewModelScope.launch {
             _state.update { it.copy(unfurling = true, unfurlFailed = false) }
-            val result = runCatching { wishes.unfurl(url) }.getOrNull()
+            val result = runCatching { wishes.unfurl(url, wishId) }.getOrNull()
             _state.update { s ->
                 if (result == null) {
                     s.copy(unfurling = false, unfurlFailed = true)
                 } else {
+                    val merged = mergeLink(s.draft, result)
+                    val fill = photoFillBetween(s.draft, merged)
                     s.copy(
                         unfurling = false,
                         unfurlFailed = result.title == null && result.imageUrls.isEmpty(),
-                        draft = s.draft.copy(
-                            title = s.draft.title.ifBlank { result.title.orEmpty() },
-                            imageUrls = s.draft.imageUrls.ifEmpty { result.imageUrls.take(4) },
-                            priceText = s.draft.priceText.ifBlank { result.priceAmount?.let(::formatAmount).orEmpty() },
-                            currency = result.priceCurrency ?: s.draft.currency,
-                            store = s.draft.store.ifBlank { result.siteName.orEmpty() },
-                        ),
+                        draft = merged,
+                        photoFill = s.photoFill?.plus(fill) ?: fill,
+                        fillSource = if (fill != null) FillSource.LINK else s.fillSource,
                     )
                 }
             }
@@ -307,7 +341,8 @@ class EditWishViewModel @Inject constructor(
                     s.copy(
                         readingPhoto = false,
                         readingPhotoJpeg = null,
-                        photoFill = photoFillBetween(s.draft, merged),
+                        photoFill = photoFillBetween(s.draft, merged)?.let { fill -> s.photoFill?.plus(fill) ?: fill } ?: s.photoFill,
+                        fillSource = FillSource.PHOTO,
                         photoSearchQuery = details.searchQuery.takeIf { merged.url.isBlank() },
                         draft = merged,
                     )
@@ -377,6 +412,7 @@ class EditWishViewModel @Inject constructor(
                 store = filled(before.store, merged.store),
                 url = filled(before.url, merged.url),
                 note = filled(before.note, merged.note),
+                images = (merged.imageUrls - before.imageUrls.toSet()).ifEmpty { null },
             )
             return fill.takeUnless { it.isEmpty }
         }
@@ -392,6 +428,20 @@ class EditWishViewModel @Inject constructor(
                 store = clear(draft.store, fill.store),
                 url = clear(draft.url, fill.url),
                 note = clear(draft.note, fill.note),
+                imageUrls = draft.imageUrls - fill.images.orEmpty().toSet(),
+            )
+        }
+
+        /** Fills empty fields from a link preview. Anything the user typed wins. */
+        fun mergeLink(draft: WishDraft, link: com.thinkofme.core.data.LinkPreview): WishDraft {
+            val takePrice = draft.priceText.isBlank() && link.priceAmount != null
+            return draft.copy(
+                title = draft.title.ifBlank { link.title.orEmpty() },
+                imageUrls = draft.imageUrls.ifEmpty { link.imageUrls.take(4) },
+                priceText = if (takePrice) formatAmount(link.priceAmount!!) else draft.priceText,
+                currency = if (takePrice) link.priceCurrency ?: draft.currency else draft.currency,
+                store = draft.store.ifBlank { link.siteName.orEmpty() },
+                note = draft.note.ifBlank { link.note.orEmpty() },
             )
         }
 

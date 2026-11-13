@@ -106,6 +106,7 @@
     <string name="scan_brand">מזהים את המותג…</string>
     <string name="scan_price">קוראים את המחיר…</string>
     <string name="scan_store">מחפשים את החנות…</string>
+    <string name="filled_from_link">מילאנו פרטים מהקישור. כדאי לבדוק שהכול נכון.</string>
     <string name="filled_from_photo">מילאנו פרטים מהתמונה. כדאי לבדוק שהכול נכון.</string>
     <string name="clear_photo_details">ניקוי הפרטים</string>
     <string name="clear_photo_title">לנקות את הפרטים מהתמונה?</string>

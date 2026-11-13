@@ -184,7 +184,7 @@ public final class DemoBackend: Backend {
         claimList.removeAll { $0.wishId == wishId }
         changed()
     }
-    public func unfurl(_ url: URL) async throws -> LinkPreview {
+    public func unfurl(_ url: URL, wishId: String?) async throws -> LinkPreview {
         try await Task.sleep(for: .milliseconds(700))
         return LinkPreview(url: url, title: nil, imageURLs: [], siteName: url.host()?.replacingOccurrences(of: "www.", with: ""), price: nil)
     }

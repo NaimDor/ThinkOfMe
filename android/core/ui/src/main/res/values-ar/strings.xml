@@ -115,6 +115,7 @@
     <string name="scan_brand">نتعرّف على العلامة التجارية…</string>
     <string name="scan_price">نقرأ السعر…</string>
     <string name="scan_store">نبحث عن المتجر…</string>
+    <string name="filled_from_link">عبّأنا التفاصيل من الرابط. تحقّق منها.</string>
     <string name="filled_from_photo">عبّأنا التفاصيل من صورتك. تحقّق منها.</string>
     <string name="clear_photo_details">امسح التفاصيل</string>
     <string name="clear_photo_title">مسح التفاصيل المأخوذة من هذه الصورة؟</string>

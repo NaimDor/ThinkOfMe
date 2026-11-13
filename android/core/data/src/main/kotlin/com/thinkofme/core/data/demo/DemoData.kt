@@ -252,7 +252,7 @@ class DemoWishRepository @Inject constructor(
         )
     }
 
-    override suspend fun unfurl(url: String): LinkPreview {
+    override suspend fun unfurl(url: String, wishId: String?): LinkPreview {
         delay(700)
         val host = runCatching { java.net.URI(url).host?.removePrefix("www.") }.getOrNull()
         return LinkPreview(url, null, emptyList(), host, null, null)

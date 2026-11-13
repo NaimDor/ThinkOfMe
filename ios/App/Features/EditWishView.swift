@@ -19,6 +19,10 @@ final class EditWishModel {
     /// Some fields were filled in from the photo.
     /// What was filled in from the photo, so it can be cleared again.
     private(set) var photoFill: PhotoFill?
+    /// Whether the last automatic fill came from a link (else from a photo).
+    private(set) var filledFromLink = false
+    private var lastUnfurledURL: String?
+    private var urlTask: Task<Void, Never>?
     /// Upload URL of the photo the details were read from.
     private var analyzedPhotoURL: URL?
     private var readTask: Task<Void, Never>?
@@ -50,19 +54,39 @@ final class EditWishModel {
     }
 
     /// Fill title, photos and price from the link. Fields the user typed win.
+    /// Typing or pasting a link reads it automatically once it looks like a whole address.
+    func urlChanged() {
+        urlTask?.cancel()
+        let text = draft.url.trimmingCharacters(in: .whitespaces)
+        guard let url = URL(string: text), url.scheme?.hasPrefix("http") == true,
+              url.host()?.contains(".") == true, text != lastUnfurledURL else { return }
+        urlTask = Task {
+            try? await Task.sleep(for: .milliseconds(700))
+            guard !Task.isCancelled else { return }
+            await unfurl()
+        }
+    }
+
+    /// Fetch title, photos, price and store for the link. Fields the user already typed win.
     func unfurl() async {
-        guard let url = URL(string: draft.url.trimmingCharacters(in: .whitespaces)), url.scheme?.hasPrefix("http") == true else { return }
+        let text = draft.url.trimmingCharacters(in: .whitespaces)
+        guard let url = URL(string: text), url.scheme?.hasPrefix("http") == true else { return }
+        if unfurling && text == lastUnfurledURL { return }
+        lastUnfurledURL = text
         unfurling = true
         unfurlFailed = false
         defer { unfurling = false }
-        guard let preview = try? await backend.unfurl(url) else { unfurlFailed = true; return }
-        if draft.title.isEmpty { draft.title = preview.title ?? "" }
-        if draft.imageURLs.isEmpty { draft.imageURLs = Array(preview.imageURLs.prefix(4)) }
-        if draft.priceText.isEmpty, let price = preview.price {
-            draft.priceText = WishDraft.format(price.amount)
-            draft.currency = price.currency
+        let preview: LinkPreview
+        do { preview = try await backend.unfurl(url, wishId: wishId) } catch {
+            unfurlFailed = true
+            return
         }
-        if draft.store.isEmpty { draft.store = preview.siteName ?? "" }
+        let merged = draft.merging(preview)
+        if let fill = PhotoFill(before: draft, merged: merged) {
+            photoFill = photoFill?.combined(with: fill) ?? fill
+            filledFromLink = true
+        }
+        draft = merged
         unfurlFailed = preview.title == nil && preview.imageURLs.isEmpty
     }
 
@@ -98,7 +122,10 @@ final class EditWishModel {
         // The photo was removed while it was being read.
         guard !Task.isCancelled, details.isProduct else { return }
         let merged = draft.merging(details)
-        photoFill = PhotoFill(before: draft, merged: merged)
+        if let fill = PhotoFill(before: draft, merged: merged) {
+            photoFill = photoFill?.combined(with: fill) ?? fill
+            filledFromLink = false
+        }
         draft = merged
         photoSearchQuery = draft.url.isEmpty ? details.searchQuery : nil
         if draft.url.hasPrefix("http"), draft.imageURLs.count <= 1 { await unfurl() }
@@ -161,6 +188,7 @@ struct EditWishView: View {
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
                         .onSubmit { Task { await model.unfurl() } }
+                        .onChange(of: model.draft.url) { model.urlChanged() }
                         .overlay(alignment: .bottomTrailing) {
                             if model.unfurling {
                                 ProgressView().padding(14)
@@ -352,7 +380,7 @@ private struct PhotoReadingStatus: View {
                 if model.photoFill != nil {
                     HStack(spacing: 8) {
                         Image(systemName: "sparkles").foregroundStyle(AppColor.accentText)
-                        Text(L("filled_from_photo")).textStyle(.caption).foregroundStyle(AppColor.inkMuted)
+                        Text(L(model.filledFromLink ? "filled_from_link" : "filled_from_photo")).textStyle(.caption).foregroundStyle(AppColor.inkMuted)
                         Spacer(minLength: Space.xs)
                         Button(L("clear_photo_details")) { withAnimation { model.clearPhotoDetails() } }
                             .textStyle(.callout).fontWeight(.semibold).foregroundStyle(AppColor.accentText)

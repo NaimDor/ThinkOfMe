@@ -4,7 +4,6 @@ import { logger } from "firebase-functions";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
 import { onUserDeleted } from "firebase-functions/v2/identity";
 import { auth, db, ENFORCE_APP_CHECK, REGION } from "../lib/firebase";
-import { unfurl, UnfurlError } from "../lib/unfurl";
 
 /**
  * Remove everything a user owns. Idempotent: runs from the explicit
@@ -58,30 +57,4 @@ export const deleteAccount = onCall({ region: REGION, enforceAppCheck: ENFORCE_A
 /** Safety net when an account is deleted from the console or elsewhere. */
 export const onAccountDeleted = onUserDeleted({ region: REGION }, async (event) => {
   await purgeUserData(event.data.uid);
-});
-
-/** Fetch a product page and return title, images and price for a new wish. */
-export const unfurlLink = onCall({ region: REGION, memory: "512MiB", timeoutSeconds: 20, enforceAppCheck: ENFORCE_APP_CHECK, invoker: "public" }, async (request) => {
-  const uid = request.auth?.uid;
-  if (!uid) throw new HttpsError("unauthenticated", "Sign in first.");
-  const url = request.data?.url;
-  if (typeof url !== "string" || url.length > 2048) throw new HttpsError("invalid-argument", "invalid-url");
-
-  // Simple per-user rate limit: 60 previews per hour.
-  const bucket = db.collection("rateLimits").doc(`unfurl_${uid}_${Math.floor(Date.now() / 3_600_000)}`);
-  const count = await db.runTransaction(async (tx) => {
-    const snap = await tx.get(bucket);
-    const next = ((snap.get("count") as number | undefined) ?? 0) + 1;
-    tx.set(bucket, { count: next, expiresAt: new Date(Date.now() + 2 * 3_600_000) }, { merge: true });
-    return next;
-  });
-  if (count > 60) throw new HttpsError("resource-exhausted", "rate-limited");
-
-  try {
-    return await unfurl(url);
-  } catch (error) {
-    if (error instanceof UnfurlError) throw new HttpsError("failed-precondition", error.message);
-    logger.info("unfurl failed", { error: String(error) });
-    throw new HttpsError("unavailable", "fetch-failed");
-  }
 });

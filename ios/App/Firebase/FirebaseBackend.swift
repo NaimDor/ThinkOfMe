@@ -408,8 +408,10 @@ final class FirebaseBackend: Backend {
         )
     }
 
-    func unfurl(_ url: URL) async throws -> LinkPreview {
-        let data = try await call("unfurlLink", ["url": url.absoluteString])
+    func unfurl(_ url: URL, wishId: String?) async throws -> LinkPreview {
+        var args: [String: Any] = ["url": url.absoluteString, "locale": Locale.current.identifier]
+        if let wishId { args["wishId"] = wishId }
+        let data = try await call("unfurlLink", args)
         let price = data["price"] as? [String: Any]
         return LinkPreview(
             url: (data["url"] as? String).flatMap(URL.init(string:)) ?? url,
@@ -419,7 +421,8 @@ final class FirebaseBackend: Backend {
             price: price.flatMap { p in
                 guard let amount = (p["amount"] as? NSNumber)?.doubleValue, let currency = p["currency"] as? String else { return nil }
                 return Money(amount: amount, currency: currency)
-            }
+            },
+            note: (data["note"] as? String).flatMap { $0.isEmpty ? nil : $0 }
         )
     }
 

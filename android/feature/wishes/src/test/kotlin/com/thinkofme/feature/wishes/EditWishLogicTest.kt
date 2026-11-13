@@ -75,4 +75,37 @@ class EditWishLogicTest {
         val draft = com.thinkofme.core.model.WishDraft(title = "a", priceText = "1", store = "b", note = "c")
         assertNull(EditWishViewModel.photoFillBetween(draft, draft))
     }
+
+    @Test
+    fun `link details fill empty fields and can be cleared with their photos`() {
+        val before = com.thinkofme.core.model.WishDraft(title = "Mine", currency = "USD")
+        val link = com.thinkofme.core.data.LinkPreview(
+            url = "https://shop.example.com/p/1", title = "Aura X2", imageUrls = listOf("https://storage/a.jpg", "https://storage/b.jpg"),
+            siteName = "Soundhouse", priceAmount = 349.9, priceCurrency = "ILS", note = "Black",
+        )
+        val merged = EditWishViewModel.mergeLink(before, link)
+        assertEquals("Mine", merged.title)
+        assertEquals("349.90", merged.priceText)
+        assertEquals("ILS", merged.currency)
+        assertEquals(listOf("https://storage/a.jpg", "https://storage/b.jpg"), merged.imageUrls)
+        val fill = EditWishViewModel.photoFillBetween(before, merged)!!
+        val cleared = EditWishViewModel.clearPhotoFill(merged, fill)
+        assertEquals(emptyList<String>(), cleared.imageUrls)
+        assertEquals("", cleared.store)
+        assertEquals("USD", cleared.currency)
+        assertEquals("Mine", cleared.title)
+    }
+
+    @Test
+    fun `fills from a photo and a link combine`() {
+        val photo = PhotoFill(title = "From photo", priceText = "10", currency = "ILS", previousCurrency = "USD")
+        val link = PhotoFill(store = "Shop", priceText = "12", currency = "EUR", previousCurrency = "ILS", images = listOf("x"))
+        val both = photo + link
+        assertEquals("From photo", both.title)
+        assertEquals("10", both.priceText)
+        assertEquals("ILS", both.currency)
+        assertEquals("USD", both.previousCurrency)
+        assertEquals("Shop", both.store)
+        assertEquals(listOf("x"), both.images)
+    }
 }

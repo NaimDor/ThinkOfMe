@@ -109,6 +109,7 @@
     <string name="scan_brand">Узнаём бренд…</string>
     <string name="scan_price">Читаем ценник…</string>
     <string name="scan_store">Ищем магазин…</string>
+    <string name="filled_from_link">Заполнили по ссылке. Проверьте детали.</string>
     <string name="filled_from_photo">Заполнили по фото. Проверьте детали.</string>
     <string name="clear_photo_details">Очистить</string>
     <string name="clear_photo_title">Очистить данные из этого фото?</string>

@@ -2150,6 +2150,35 @@
         }
       }
     },
+    "filled_from_link": {
+      "extractionState": "manual",
+      "localizations": {
+        "ar": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "عبّأنا التفاصيل من الرابط. تحقّق منها."
+          }
+        },
+        "en": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Filled in from the link. Check the details."
+          }
+        },
+        "he": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "מילאנו פרטים מהקישור. כדאי לבדוק שהכול נכון."
+          }
+        },
+        "ru": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Заполнили по ссылке. Проверьте детали."
+          }
+        }
+      }
+    },
     "filled_from_photo": {
       "extractionState": "manual",
       "localizations": {

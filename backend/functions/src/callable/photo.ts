@@ -1,12 +1,10 @@
 import Anthropic from "@anthropic-ai/sdk";
 import { zodOutputFormat } from "@anthropic-ai/sdk/helpers/zod";
 import { logger } from "firebase-functions";
-import { defineSecret } from "firebase-functions/params";
 import { HttpsError, onCall } from "firebase-functions/v2/https";
-import { db, ENFORCE_APP_CHECK, REGION } from "../lib/firebase";
+import { aiClient, anthropicKey, countDailyUse, READER_MODEL } from "../lib/ai";
+import { ENFORCE_APP_CHECK, REGION } from "../lib/firebase";
 import { cleanPhotoInfo, languageName, PhotoInfoSchema, sniffImage, SYSTEM_PROMPT } from "../lib/photoInfo";
-
-const anthropicKey = defineSecret("ANTHROPIC_API_KEY");
 
 /** Photos are downscaled on the phone first; anything bigger than this is not one of ours. */
 const MAX_IMAGE_BYTES = 3 * 1024 * 1024;
@@ -28,8 +26,8 @@ export const analyzePhoto = onCall(
   async (request) => {
     const uid = request.auth?.uid;
     if (!uid) throw new HttpsError("unauthenticated", "Sign in first.");
-    const apiKey = anthropicKey.value();
-    if (!apiKey.startsWith("sk-")) throw new HttpsError("failed-precondition", "not-configured");
+    const client = aiClient();
+    if (!client) throw new HttpsError("failed-precondition", "not-configured");
     const image = request.data?.image;
     if (typeof image !== "string" || image.length < 100) throw new HttpsError("invalid-argument", "invalid-image");
 
@@ -42,21 +40,11 @@ export const analyzePhoto = onCall(
     if (media.bytes > MAX_IMAGE_BYTES) throw new HttpsError("invalid-argument", "image-too-large");
 
     // Each photo costs money to read, so keep a per-user daily cap.
-    const day = new Date().toISOString().slice(0, 10);
-    const bucket = db.collection("rateLimits").doc(`photo_${uid}_${day}`);
-    const count = await db.runTransaction(async (tx) => {
-      const snap = await tx.get(bucket);
-      const next = ((snap.get("count") as number | undefined) ?? 0) + 1;
-      tx.set(bucket, { count: next, expiresAt: new Date(Date.now() + 2 * 86_400_000) }, { merge: true });
-      return next;
-    });
-    if (count > DAILY_LIMIT) throw new HttpsError("resource-exhausted", "rate-limited");
+    await countDailyUse("photo", uid, DAILY_LIMIT);
 
-    const client = new Anthropic({ apiKey, timeout: 45_000, maxRetries: 1 });
     try {
       const message = await client.messages.parse({
-        // Haiku reads products, tags and screenshots well at a fraction of a cent per photo.
-        model: "claude-haiku-5-5",
+        model: READER_MODEL,
         max_tokens: 4096,
         // Reading a photo is a simple extraction task: low effort keeps it fast and cheap.
         output_config: { effort: "low", format: zodOutputFormat(PhotoInfoSchema) },

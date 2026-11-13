@@ -413,8 +413,9 @@ class FirebaseWishRepository @Inject constructor(private val session: FirebaseSe
         )
     }
 
-    override suspend fun unfurl(url: String): LinkPreview {
-        val data = functions().getHttpsCallable("unfurlLink").call(mapOf("url" to url)).await().getData() as? Map<String, Any?> ?: emptyMap()
+    override suspend fun unfurl(url: String, wishId: String?): LinkPreview {
+        val args = mapOf("url" to url, "wishId" to wishId, "locale" to java.util.Locale.getDefault().toLanguageTag())
+        val data = functions().getHttpsCallable("unfurlLink").call(args).await().getData() as? Map<String, Any?> ?: emptyMap()
         val price = data["price"] as? Map<String, Any?>
         return LinkPreview(
             url = data["url"] as? String ?: url,
@@ -423,6 +424,7 @@ class FirebaseWishRepository @Inject constructor(private val session: FirebaseSe
             siteName = data["siteName"] as? String,
             priceAmount = (price?.get("amount") as? Number)?.toDouble(),
             priceCurrency = price?.get("currency") as? String,
+            note = (data["note"] as? String)?.takeIf { it.isNotBlank() },
         )
     }
 }

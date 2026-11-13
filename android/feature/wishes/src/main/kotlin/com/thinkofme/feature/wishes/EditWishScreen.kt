@@ -76,7 +76,7 @@ fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () ->
             ) {
                 AppTextField(
                     value = draft.url,
-                    onValueChange = { vm.update { copy(url = it) } },
+                    onValueChange = vm::onUrlChanged,
                     label = stringResource(R.string.field_link),
                     placeholder = stringResource(R.string.field_link_hint),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go),
@@ -225,7 +225,7 @@ private fun PhotoReadingStatus(state: EditWishUiState, onFindOnline: (String) ->
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     Icon(AppIcons.Sparkle, null, tint = AppTheme.colors.accentText, modifier = Modifier.size(16.dp))
                     Text(
-                        stringResource(R.string.filled_from_photo),
+                        stringResource(if (state.fillSource == FillSource.LINK) R.string.filled_from_link else R.string.filled_from_photo),
                         style = AppTheme.type.caption,
                         color = AppTheme.colors.inkMuted,
                         modifier = Modifier.weight(1f),

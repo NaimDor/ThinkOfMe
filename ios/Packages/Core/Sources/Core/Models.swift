@@ -230,8 +230,10 @@ public struct InvitePreview: Sendable { public let circleName: String; public le
 
 public struct LinkPreview: Sendable {
     public let url: URL; public let title: String?; public let imageURLs: [URL]; public let siteName: String?; public let price: Money?
-    public init(url: URL, title: String?, imageURLs: [URL], siteName: String?, price: Money?) {
-        self.url = url; self.title = title; self.imageURLs = imageURLs; self.siteName = siteName; self.price = price
+    /// A short line with details a gift buyer needs (size, color), when the page has one.
+    public let note: String?
+    public init(url: URL, title: String?, imageURLs: [URL], siteName: String?, price: Money?, note: String? = nil) {
+        self.url = url; self.title = title; self.imageURLs = imageURLs; self.siteName = siteName; self.price = price; self.note = note
     }
 }
 
@@ -284,8 +286,27 @@ public struct PhotoFill: Equatable, Sendable {
     public var store: String?
     public var url: String?
     public var note: String?
+    /// Photos added along with the details (from a link).
+    public var images: [URL]?
 
-    public var isEmpty: Bool { [title, priceText, store, url, note].allSatisfy { $0 == nil } }
+    public var isEmpty: Bool { [title, priceText, store, url, note].allSatisfy { $0 == nil } && (images ?? []).isEmpty }
+
+    /// Both fills together; this one wins where both filled the same field.
+    public func combined(with other: PhotoFill?) -> PhotoFill {
+        guard let other else { return self }
+        var fill = self
+        fill.title = title ?? other.title
+        if priceText == nil {
+            fill.priceText = other.priceText; fill.currency = other.currency; fill.previousCurrency = other.previousCurrency
+        }
+        fill.store = store ?? other.store
+        fill.url = url ?? other.url
+        fill.note = note ?? other.note
+        var images = self.images ?? []
+        for image in other.images ?? [] where !images.contains(image) { images.append(image) }
+        fill.images = images.isEmpty ? nil : images
+        return fill
+    }
 
     /// What `merged` filled in compared with `before`, or nil if nothing changed.
     public init?(before: WishDraft, merged: WishDraft) {
@@ -297,6 +318,8 @@ public struct PhotoFill: Equatable, Sendable {
         store = filled(before.store, merged.store)
         url = filled(before.url, merged.url)
         note = filled(before.note, merged.note)
+        let added = merged.imageURLs.filter { !before.imageURLs.contains($0) }
+        images = added.isEmpty ? nil : added
         if isEmpty { return nil }
     }
 }
@@ -313,6 +336,21 @@ extension WishDraft {
         draft.store = clear(draft.store, fill.store)
         draft.url = clear(draft.url, fill.url)
         draft.note = clear(draft.note, fill.note)
+        if let images = fill.images { draft.imageURLs.removeAll { images.contains($0) } }
+        return draft
+    }
+
+    /// Fills empty fields from a link preview. Anything the user typed wins.
+    public func merging(_ link: LinkPreview) -> WishDraft {
+        var draft = self
+        if draft.title.isEmpty { draft.title = link.title ?? "" }
+        if draft.imageURLs.isEmpty { draft.imageURLs = Array(link.imageURLs.prefix(4)) }
+        if draft.priceText.isEmpty, let price = link.price {
+            draft.priceText = WishDraft.format(price.amount)
+            draft.currency = price.currency
+        }
+        if draft.store.isEmpty { draft.store = link.siteName ?? "" }
+        if draft.note.isEmpty { draft.note = link.note ?? "" }
         return draft
     }
 }
