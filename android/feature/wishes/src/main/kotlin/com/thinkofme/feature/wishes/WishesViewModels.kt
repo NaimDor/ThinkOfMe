@@ -381,7 +381,7 @@ class EditWishViewModel @Inject constructor(
 
     fun save() {
         val s = _state.value
-        if (!s.draft.isValid || s.saving) return
+        if (!s.draft.isValid || s.saving || s.unfurling || s.readingPhoto) return
         viewModelScope.launch {
             _state.update { it.copy(saving = true, error = false) }
             val ok = runCatching { wishes.save(wishId, isNew = route.wishId == null, draft = s.draft) }.isSuccess

@@ -62,6 +62,8 @@ import com.thinkofme.core.ui.priorityLabel
 @Composable
 fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () -> Unit) {
     val draft = state.draft
+    // While a link or photo is being read, the fields it fills are locked so typing can't race it.
+    val gathering = state.unfurling || state.readingPhoto
     val context = LocalContext.current
     Box(Modifier.fillMaxSize().background(AppTheme.colors.canvas)) {
         Column(Modifier.fillMaxSize().imePadding()) {
@@ -78,6 +80,7 @@ fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () ->
                     value = draft.url,
                     onValueChange = vm::onUrlChanged,
                     label = stringResource(R.string.field_link),
+                    loading = gathering,
                     placeholder = stringResource(R.string.field_link_hint),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri, imeAction = ImeAction.Go),
                     keyboardActions = KeyboardActions(onGo = { vm.unfurl() }),
@@ -136,6 +139,7 @@ fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () ->
                     value = draft.title,
                     onValueChange = { if (it.length <= 140) vm.update { copy(title = it) } },
                     label = stringResource(R.string.field_title),
+                    loading = gathering,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Sentences, imeAction = ImeAction.Next),
                 )
                 if (draft.kind == WishKind.PRODUCT) {
@@ -144,6 +148,7 @@ fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () ->
                             value = draft.priceText,
                             onValueChange = { text -> vm.update { copy(priceText = text.filter { it.isDigit() || it == '.' || it == ',' }.take(10)) } },
                             label = stringResource(R.string.field_price),
+                            loading = gathering,
                             modifier = Modifier.weight(1f),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                             trailing = { Text(draft.currency, style = AppTheme.type.callout, color = AppTheme.colors.inkMuted) },
@@ -152,6 +157,7 @@ fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () ->
                             value = draft.store,
                             onValueChange = { vm.update { copy(store = it.take(120)) } },
                             label = stringResource(R.string.field_store),
+                            loading = gathering,
                             modifier = Modifier.weight(1f),
                         )
                     }
@@ -160,6 +166,7 @@ fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () ->
                     value = draft.note,
                     onValueChange = { vm.update { copy(note = it.take(1000)) } },
                     label = stringResource(R.string.field_note),
+                    loading = gathering,
                     placeholder = stringResource(R.string.field_note_hint),
                     singleLine = false,
                     minLines = 3,
@@ -196,7 +203,7 @@ fun EditWishScreen(state: EditWishUiState, vm: EditWishViewModel, onClose: () ->
             }
             Column(Modifier.windowInsetsPadding(WindowInsets.navigationBars).padding(horizontal = AppSpace.l, vertical = AppSpace.m)) {
                 if (state.error) Text(stringResource(R.string.error_generic), style = AppTheme.type.caption, color = AppTheme.colors.danger, modifier = Modifier.padding(bottom = AppSpace.xs))
-                PrimaryButton(stringResource(R.string.action_save), vm::save, Modifier.fillMaxWidth(), enabled = draft.isValid, loading = state.saving)
+                PrimaryButton(stringResource(R.string.action_save), vm::save, Modifier.fillMaxWidth(), enabled = draft.isValid && !gathering, loading = state.saving)
             }
         }
     }

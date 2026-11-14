@@ -245,14 +245,17 @@ public struct EmptyStateView<Action: View>: View {
 }
 
 /// Quiet text field: label above, filled surface, hairline border.
+/// Quiet text field: label above, soft filled surface. While `isLoading`, it can't be edited
+/// and a soft highlight sweeps across it.
 public struct AppTextField: View {
     let label: String
     let placeholder: String
     @Binding var text: String
     let axis: Axis
+    let isLoading: Bool
 
-    public init(_ label: String, text: Binding<String>, placeholder: String = "", axis: Axis = .horizontal) {
-        self.label = label; self._text = text; self.placeholder = placeholder; self.axis = axis
+    public init(_ label: String, text: Binding<String>, placeholder: String = "", axis: Axis = .horizontal, isLoading: Bool = false) {
+        self.label = label; self._text = text; self.placeholder = placeholder; self.axis = axis; self.isLoading = isLoading
     }
 
     public var body: some View {
@@ -260,13 +263,48 @@ public struct AppTextField: View {
             Text(label).textStyle(.caption).fontWeight(.semibold).foregroundStyle(AppColor.inkMuted)
             TextField(placeholder, text: $text, axis: axis)
                 .textStyle(.body)
-                .foregroundStyle(AppColor.ink)
+                .foregroundStyle(isLoading ? AppColor.inkMuted : AppColor.ink)
                 .lineLimit(axis == .vertical ? 3...8 : 1...1)
                 .padding(14)
                 .frame(minHeight: 52)
-                .background(AppColor.surface, in: RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+                .background {
+                    RoundedRectangle(cornerRadius: Radius.s, style: .continuous)
+                        .fill(AppColor.surface)
+                        .overlay {
+                            if isLoading {
+                                ShimmerFill(base: AppColor.surfaceMuted, highlight: AppColor.surface)
+                                    .clipShape(RoundedRectangle(cornerRadius: Radius.s, style: .continuous))
+                                    .transition(.opacity)
+                            }
+                        }
+                }
+                .disabled(isLoading)
+                .animation(.easeOut(duration: 0.2), value: isLoading)
                 .overlay(RoundedRectangle(cornerRadius: Radius.s, style: .continuous).strokeBorder(AppColor.hairline))
                 .accessibilityLabel(label)
+        }
+    }
+}
+
+/// A soft highlight sweeping left to right over `base`; just `base` under Reduce Motion.
+struct ShimmerFill: View {
+    let base: Color
+    let highlight: Color
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    var body: some View {
+        if reduceMotion {
+            base
+        } else {
+            TimelineView(.animation) { context in
+                let cycle = 1.3
+                let p = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: cycle) / cycle * 2 - 0.5
+                LinearGradient(
+                    colors: [base, highlight, base],
+                    startPoint: UnitPoint(x: p - 0.4, y: 0.5),
+                    endPoint: UnitPoint(x: p + 0.4, y: 0.5)
+                )
+            }
         }
     }
 }

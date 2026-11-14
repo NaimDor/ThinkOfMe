@@ -129,4 +129,16 @@ class ScreenshotTest {
             androidx.compose.ui.Modifier.background(com.thinkofme.core.designsystem.theme.AppTheme.colors.canvas).padding(24.dp),
         ) { PhotoScanner(bitmap.asImageBitmap(), phase = 0.1f) }
     }
+
+    /** Text fields while a link is being read: locked, with the shimmer. */
+    @Test fun fieldsLoading() = snap("fields_loading") {
+        androidx.compose.foundation.layout.Column(
+            androidx.compose.ui.Modifier.background(com.thinkofme.core.designsystem.theme.AppTheme.colors.canvas).padding(24.dp),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(16.dp),
+        ) {
+            com.thinkofme.core.designsystem.component.AppTextField("https://shop.example.com/p/aura-x2", {}, "Link", loading = true)
+            com.thinkofme.core.designsystem.component.AppTextField("", {}, "Title", loading = true)
+            com.thinkofme.core.designsystem.component.AppTextField("Aura X2 headphones", {}, "Title")
+        }
+    }
 }

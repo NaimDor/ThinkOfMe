@@ -1,6 +1,17 @@
 package com.thinkofme.core.designsystem.component
 
 import androidx.compose.animation.animateColorAsState
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Brush
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.runtime.remember
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.LinearEasing
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -33,7 +44,10 @@ import androidx.compose.ui.unit.dp
 import com.thinkofme.core.designsystem.theme.AppRadius
 import com.thinkofme.core.designsystem.theme.AppTheme
 
-/** Quiet text field: label above, soft filled surface, no outline. */
+/**
+ * Quiet text field: label above, soft filled surface, no outline.
+ * While [loading], it can't be edited and a soft shimmer sweeps across it.
+ */
 @Composable
 fun AppTextField(
     value: String,
@@ -46,8 +60,10 @@ fun AppTextField(
     keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
     keyboardActions: KeyboardActions = KeyboardActions.Default,
     trailing: (@Composable () -> Unit)? = null,
+    loading: Boolean = false,
 ) {
     val colors = AppTheme.colors
+    val shimmer = if (loading) shimmerBrush(base = colors.surfaceMuted, highlight = colors.surface) else null
     Column(modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(label, style = AppTheme.type.caption.copy(fontWeight = AppTheme.type.bodyStrong.fontWeight), color = colors.inkMuted)
         Row(
@@ -55,7 +71,7 @@ fun AppTextField(
                 .fillMaxWidth()
                 .heightIn(min = 52.dp)
                 .clip(RoundedCornerShape(AppRadius.s))
-                .background(colors.surface)
+                .then(if (shimmer != null) Modifier.background(shimmer) else Modifier.background(colors.surface))
                 .border(1.dp, colors.hairline, RoundedCornerShape(AppRadius.s))
                 .padding(horizontal = 14.dp, vertical = 14.dp),
             verticalAlignment = if (singleLine) Alignment.CenterVertically else Alignment.Top,
@@ -63,8 +79,9 @@ fun AppTextField(
             BasicTextField(
                 value = value,
                 onValueChange = onValueChange,
+                enabled = !loading,
                 modifier = Modifier.weight(1f).semantics { contentDescription = label },
-                textStyle = AppTheme.type.body.copy(color = colors.ink),
+                textStyle = AppTheme.type.body.copy(color = if (loading) colors.inkMuted else colors.ink),
                 cursorBrush = SolidColor(colors.accent),
                 singleLine = singleLine,
                 minLines = minLines,
@@ -80,6 +97,30 @@ fun AppTextField(
             trailing?.invoke()
         }
     }
+}
+
+/** A soft highlight sweeping left to right; a still tint when animations are off. */
+@Composable
+private fun shimmerBrush(base: Color, highlight: Color): Brush {
+    val context = LocalContext.current
+    val still = remember {
+        runCatching {
+            android.provider.Settings.Global.getFloat(context.contentResolver, android.provider.Settings.Global.ANIMATOR_DURATION_SCALE, 1f) == 0f
+        }.getOrDefault(false)
+    }
+    if (still) return SolidColor(base)
+    val progress by rememberInfiniteTransition(label = "shimmer").animateFloat(
+        initialValue = -1f,
+        targetValue = 2f,
+        animationSpec = infiniteRepeatable(tween(1_300, easing = LinearEasing), RepeatMode.Restart),
+        label = "sweep",
+    )
+    val width = 600f
+    return Brush.linearGradient(
+        colors = listOf(base, highlight, base),
+        start = Offset(progress * width - width / 2, 0f),
+        end = Offset(progress * width + width / 2, 0f),
+    )
 }
 
 /** Selectable chip used for priorities, circles and kinds. */

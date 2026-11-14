@@ -19,6 +19,9 @@ final class EditWishModel {
     /// Some fields were filled in from the photo.
     /// What was filled in from the photo, so it can be cleared again.
     private(set) var photoFill: PhotoFill?
+    /// A link or photo is being read: the fields it fills are locked so typing can't race it.
+    var gathering: Bool { unfurling || readingPhoto }
+
     /// Whether the last automatic fill came from a link (else from a photo).
     private(set) var filledFromLink = false
     private var lastUnfurledURL: String?
@@ -161,7 +164,7 @@ final class EditWishModel {
     }
 
     func save() async -> Bool {
-        guard draft.isValid, !saving else { return false }
+        guard draft.isValid, !saving, !gathering else { return false }
         saving = true
         defer { saving = false }
         do {
@@ -183,7 +186,7 @@ struct EditWishView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: Space.l) {
-                    AppTextField(L("field_link"), text: $model.draft.url, placeholder: L("field_link_hint"))
+                    AppTextField(L("field_link"), text: $model.draft.url, placeholder: L("field_link_hint"), isLoading: model.gathering)
                         .keyboardType(.URL)
                         .textInputAutocapitalization(.never)
                         .autocorrectionDisabled()
@@ -210,14 +213,14 @@ struct EditWishView: View {
                         ChoiceChip(L("field_kind_idea"), systemImage: "sparkle", isSelected: model.draft.kind == .idea) { model.draft.kind = .idea }
                     }
 
-                    AppTextField(L("field_title"), text: $model.draft.title)
+                    AppTextField(L("field_title"), text: $model.draft.title, isLoading: model.gathering)
                     if model.draft.kind == .product {
                         HStack(alignment: .top, spacing: Space.s) {
-                            AppTextField(L("field_price"), text: $model.draft.priceText).keyboardType(.decimalPad)
-                            AppTextField(L("field_store"), text: $model.draft.store)
+                            AppTextField(L("field_price"), text: $model.draft.priceText, isLoading: model.gathering).keyboardType(.decimalPad)
+                            AppTextField(L("field_store"), text: $model.draft.store, isLoading: model.gathering)
                         }
                     }
-                    AppTextField(L("field_note"), text: $model.draft.note, placeholder: L("field_note_hint"), axis: .vertical)
+                    AppTextField(L("field_note"), text: $model.draft.note, placeholder: L("field_note_hint"), axis: .vertical, isLoading: model.gathering)
 
                     section(L("how_much")) {
                         FlowLayout(spacing: Space.xs) {
@@ -250,7 +253,7 @@ struct EditWishView: View {
                 AppButton(L("action_save"), isLoading: model.saving) {
                     Task { if await model.save() { dismiss() } }
                 }
-                .disabled(!model.draft.isValid)
+                .disabled(!model.draft.isValid || model.gathering)
                 .padding(.horizontal, Space.l)
                 .padding(.vertical, Space.s)
                 .background(AppColor.canvas)
