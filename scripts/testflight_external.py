@@ -10,15 +10,12 @@ FEEDBACK_EMAIL, REVIEW_CONTACT ("First|Last|Phone|Email", optional when the
 review contact is already filled in App Store Connect), GROUP_NAME, BUILD_NUMBER
 (optional; default newest).
 """
-import json
 import os
 import sys
-import time
 
-import jwt
 import requests
 
-API = "https://api.appstoreconnect.apple.com"
+from asc import ApiError, call, step
 
 DESCRIPTION = (
     "ThinkOfMe is a shared gift wish list for couples, families and friends. "
@@ -36,33 +33,6 @@ REVIEW_NOTES = (
     "from the Circles tab and add wishes with the + button. Adding a photo to a new wish reads the "
     "product's name, store and price from it. Ads are Google test ads during beta."
 )
-
-
-def token() -> str:
-    now = int(time.time())
-    return jwt.encode(
-        {"iss": os.environ["ASC_ISSUER_ID"], "iat": now, "exp": now + 15 * 60, "aud": "appstoreconnect-v1"},
-        os.environ["ASC_KEY_P8"],
-        algorithm="ES256",
-        headers={"kid": os.environ["ASC_KEY_ID"], "typ": "JWT"},
-    )
-
-
-SESSION = requests.Session()
-
-
-def call(method: str, path: str, body: dict | None = None, ok=(200, 201, 204)) -> dict:
-    SESSION.headers["Authorization"] = f"Bearer {token()}"
-    response = SESSION.request(method, API + path, json=body, timeout=60)
-    if response.status_code not in ok:
-        errors = response.json().get("errors", []) if response.content else []
-        details = "; ".join(f"{e.get('title')}: {e.get('detail')}" for e in errors) or response.text[:500]
-        raise RuntimeError(f"{method} {path} -> {response.status_code}: {details}")
-    return response.json() if response.content else {}
-
-
-def step(message: str) -> None:
-    print(f"• {message}", flush=True)
 
 
 def main() -> int:
@@ -188,6 +158,6 @@ def main() -> int:
 if __name__ == "__main__":
     try:
         sys.exit(main())
-    except RuntimeError as error:
+    except (ApiError, RuntimeError) as error:
         print(f"::error::{error}")
         sys.exit(1)

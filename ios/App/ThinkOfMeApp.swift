@@ -16,17 +16,22 @@ struct ThinkOfMeApp: App {
 
     init() {
         AppFonts.register()
-        let firebase = AppServices.configureFirebase()
-        let backend: any Backend = firebase ? FirebaseBackend() : DemoBackend()
+        // Store screenshots: launched with `-screenshots YES -screen <route>` by the UI test.
+        let storeScreenshots = UserDefaults.standard.bool(forKey: "screenshots")
+        let firebase = storeScreenshots ? false : AppServices.configureFirebase()
+        let backend: any Backend = firebase ? FirebaseBackend() : DemoBackend(signedIn: storeScreenshots, storeScenario: storeScreenshots)
         _app = State(initialValue: AppModel(backend: backend))
-        services = AppServices(usesFirebase: firebase)
+        services = AppServices(usesFirebase: firebase, storeScreenshots: storeScreenshots)
+        if storeScreenshots, let screen = UserDefaults.standard.string(forKey: "screen") {
+            PushRouter.shared.pending = IncomingLink.screenshotRoute(screen)
+        }
     }
 
     var body: some Scene {
         WindowGroup {
             RootView(app: app, services: services)
                 .onOpenURL { url in _ = GIDSignIn.sharedInstance.handle(url) }
-                .task { services.ads.gatherConsent() }
+                .task { if !services.storeScreenshots { services.ads.gatherConsent() } }
                 .environment(services.ads)
         }
     }
@@ -36,9 +41,14 @@ struct ThinkOfMeApp: App {
 @MainActor
 final class AppServices {
     let usesFirebase: Bool
+    /// Running for store screenshots: demo data, no ads, no permission prompts.
+    let storeScreenshots: Bool
     let ads = AdsController()
 
-    init(usesFirebase: Bool) { self.usesFirebase = usesFirebase }
+    init(usesFirebase: Bool, storeScreenshots: Bool = false) {
+        self.usesFirebase = usesFirebase
+        self.storeScreenshots = storeScreenshots
+    }
 
     /// Firebase is optional: without GoogleService-Info.plist the app runs on demo data.
     static func configureFirebase() -> Bool {
@@ -73,6 +83,7 @@ final class AppServices {
 
     /// Ask for notification permission and tell the backend our time zone, language and push token.
     func registerDevice(_ backend: any Backend) async {
+        guard !storeScreenshots else { return }
         let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound])) ?? false
         if granted { UIApplication.shared.registerForRemoteNotifications() }
         var token: String?

@@ -48,7 +48,12 @@ jobs:
           ANDROID_SHA: ${{ secrets.ANDROID_CERT_SHA256 }}
           SITE: ${{ vars.FIREBASE_HOSTING_SITE }}
           SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+          ADMOB_PUBLISHER_ID: ${{ vars.ADMOB_PUBLISHER_ID }}
         run: |
+          # app-ads.txt lets ad buyers verify our AdMob inventory (publisher id like pub-1234567890123456).
+          if [ -n "$ADMOB_PUBLISHER_ID" ]; then
+            echo "google.com, ${ADMOB_PUBLISHER_ID#ca-app-}, DIRECT, f08c47fec0942fa0" > hosting/public/app-ads.txt
+          fi
           mkdir -p hosting/public/.well-known
           if [ -n "$TEAM" ]; then
             cat > hosting/public/.well-known/apple-app-site-association <<EOF

@@ -121,6 +121,22 @@ targets:
         CODE_SIGN_STYLE: Automatic
         TARGETED_DEVICE_FAMILY: "1"
 
+  ThinkOfMeUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: UITests
+    dependencies:
+      - target: ThinkOfMe
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.thinkofme.app.uitests
+        TEST_TARGET_NAME: ThinkOfMe
+        GENERATE_INFOPLIST_FILE: YES
+        SWIFT_VERSION: "5.0"
+        CODE_SIGN_STYLE: Automatic
+        TARGETED_DEVICE_FAMILY: "1"
+
 schemes:
   ThinkOfMe:
     build:
@@ -128,5 +144,9 @@ schemes:
         ThinkOfMe: all
     run:
       config: Debug
+    test:
+      config: Debug
+      targets:
+        - ThinkOfMeUITests
     archive:
       config: Release

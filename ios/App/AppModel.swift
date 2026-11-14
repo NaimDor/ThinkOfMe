@@ -39,6 +39,17 @@ enum IncomingLink: Equatable, Identifiable {
         }
     }
 
+    /// Screens the store-screenshot UI test opens: home, myList, dates, circles, person:ID, wish:ID:OWNER.
+    static func screenshotRoute(_ route: String) -> IncomingLink? {
+        let parts = route.split(separator: ":").map(String.init)
+        switch parts.first {
+        case "person" where parts.count == 2: return .person(id: parts[1])
+        case "wish" where parts.count == 3: return .wish(id: parts[1], ownerId: parts[2])
+        case let tab? where ["home", "myList", "dates", "circles"].contains(tab): return .tab(tab)
+        default: return nil
+        }
+    }
+
     static var linkHost: String { Bundle.main.object(forInfoDictionaryKey: "TOMLinkHost") as? String ?? "thinkofme.web.app" }
 
     /// https://<linkHost>/i/CODE, thinkofme://join?code=CODE, thinkofme://add?url=…

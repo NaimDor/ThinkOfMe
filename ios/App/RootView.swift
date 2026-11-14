@@ -133,6 +133,7 @@ struct MainTabs: View {
             tab = switch name {
             case "myList": .myList
             case "dates": .dates
+            case "circles": .circles
             default: .home
             }
         }

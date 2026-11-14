@@ -20,12 +20,18 @@ public final class DemoBackend: Backend {
 
     public var currentUser: SessionUser? { user }
 
-    public init(signedIn: Bool = false, today: Date = .now) {
-        seed(today: today)
-        if signedIn { user = SessionUser(id: meId, displayName: "Dana", email: nil) }
+    /// - Parameters:
+    ///   - language: the app language the demo texts are written in.
+    ///   - storeScenario: the set-up shown in store screenshots (you're getting Maya a scarf).
+    public init(signedIn: Bool = false, today: Date = .now, language: String = Locale.preferredLanguages.first ?? "en", storeScenario: Bool = false) {
+        seed(today: today, content: DemoContent(language: language))
+        if storeScenario {
+            claimList.append(Claim(wishId: "w4", wishOwnerId: "maya", claimerId: meId, claimerName: peopleById[meId]?.displayName ?? ""))
+        }
+        if signedIn { user = SessionUser(id: meId, displayName: peopleById[meId]?.displayName ?? "Dana", email: nil) }
     }
 
-    private func seed(today: Date) {
+    private func seed(today: Date, content c: DemoContent) {
         let calendar = Calendar.current
         func occasion(_ id: String, _ person: String, _ kind: OccasionKind, _ title: String, inDays days: Int, age: Int?, circles: [String]) -> Occasion {
             let date = calendar.date(byAdding: .day, value: days, to: today)!
@@ -36,41 +42,41 @@ public final class DemoBackend: Backend {
         func ago(_ days: Double) -> Date { today.addingTimeInterval(-days * 86_400) }
 
         peopleById = [
-            meId: Person(id: meId, displayName: "Dana", hueIndex: 2, aboutMe: AboutMe(clothingSize: "M", shoeSize: "39", favoriteColors: "Forest green, cream")),
-            "maya": Person(id: "maya", displayName: "Maya", hueIndex: 0, aboutMe: AboutMe(clothingSize: "S", shoeSize: "38", ringSize: "6", favoriteColors: "Black, terracotta", dontBuy: "Candles, please, I have enough")),
-            "mom": Person(id: "mom", displayName: "Mom", hueIndex: 1, aboutMe: AboutMe(allergies: "Lilies")),
-            "dan": Person(id: "dan", displayName: "Dan", hueIndex: 2),
-            "noa": Person(id: "noa", displayName: "Noa", hueIndex: 3),
+            meId: Person(id: meId, displayName: c.text("me"), hueIndex: 2, aboutMe: AboutMe(clothingSize: "M", shoeSize: "39", favoriteColors: c.text("colors.me"))),
+            "maya": Person(id: "maya", displayName: c.text("maya"), hueIndex: 0, aboutMe: AboutMe(clothingSize: "S", shoeSize: "38", ringSize: "6", favoriteColors: c.text("colors.maya"), dontBuy: c.text("dontBuy.maya"))),
+            "mom": Person(id: "mom", displayName: c.text("mom"), hueIndex: 1, aboutMe: AboutMe(allergies: c.text("allergies.mom"))),
+            "dan": Person(id: "dan", displayName: c.text("dan"), hueIndex: 2),
+            "noa": Person(id: "noa", displayName: c.text("noa"), hueIndex: 3),
         ]
         circleList = [
-            GiftCircle(id: "us", name: "Maya & me", kind: .pair, ownerId: meId, memberIds: [meId, "maya"], adminIds: [meId]),
-            GiftCircle(id: "family", name: "Family", kind: .group, ownerId: "mom", memberIds: [meId, "maya", "mom", "dan", "noa"], adminIds: ["mom", meId]),
+            GiftCircle(id: "us", name: c.text("circle.us"), kind: .pair, ownerId: meId, memberIds: [meId, "maya"], adminIds: [meId]),
+            GiftCircle(id: "family", name: c.text("circle.family"), kind: .group, ownerId: "mom", memberIds: [meId, "maya", "mom", "dan", "noa"], adminIds: ["mom", meId]),
         ]
         occasionList = [
-            occasion("o1", "maya", .birthday, "Birthday", inDays: 12, age: 34, circles: ["us", "family"]),
-            occasion("o2", "mom", .anniversary, "Mom & Dad's anniversary", inDays: 21, age: 38, circles: ["family"]),
-            occasion("o3", "dan", .birthday, "Birthday", inDays: 37, age: nil, circles: ["family"]),
-            occasion("o4", "noa", .birthday, "Birthday", inDays: 95, age: nil, circles: ["family"]),
-            occasion("o5", meId, .birthday, "Birthday", inDays: 64, age: 33, circles: [allCircles]),
+            occasion("o1", "maya", .birthday, c.text("birthday"), inDays: 12, age: 34, circles: ["us", "family"]),
+            occasion("o2", "mom", .anniversary, c.text("anniversary"), inDays: 21, age: 38, circles: ["family"]),
+            occasion("o3", "dan", .birthday, c.text("birthday"), inDays: 37, age: nil, circles: ["family"]),
+            occasion("o4", "noa", .birthday, c.text("birthday"), inDays: 95, age: nil, circles: ["family"]),
+            occasion("o5", meId, .birthday, c.text("birthday"), inDays: 64, age: 33, circles: [allCircles]),
         ]
         let shop = URL(string: "https://example.com/headphones")!
         wishList = [
-            Wish(id: "w1", ownerId: "maya", title: "Noise-cancelling headphones", note: "Matte black please, for flights and deep-work days.", urls: [shop], price: Money(amount: 349, currency: "USD"), store: "Soundhouse", visibleCircleIds: ["us", "family"], createdAt: ago(2)),
-            Wish(id: "w2", ownerId: "maya", title: "Ceramics class for two", note: "Any weekend works. Let's go together!", kind: .idea, priority: .dream, visibleCircleIds: ["us"], createdAt: ago(1)),
-            Wish(id: "w3", ownerId: "maya", title: "Italian cookbook", price: Money(amount: 32, currency: "USD"), store: "Bookshop", priority: .nice, visibleCircleIds: ["us", "family"], createdAt: ago(30)),
-            Wish(id: "w4", ownerId: "maya", title: "Silk scarf, terracotta", price: Money(amount: 85, currency: "USD"), store: "Atelier", visibleCircleIds: ["family", "us"], createdAt: ago(40)),
-            Wish(id: "w5", ownerId: "maya", title: "Running socks (3 pairs)", price: Money(amount: 18, currency: "USD"), priority: .nice, quantity: 3, visibleCircleIds: ["family"], createdAt: ago(50)),
-            Wish(id: "w6", ownerId: "mom", title: "Large monstera plant", note: "In a ceramic pot if possible.", price: Money(amount: 65, currency: "USD"), store: "Green House", visibleCircleIds: ["family"], createdAt: ago(20)),
-            Wish(id: "w7", ownerId: "dan", title: "Instant film camera", price: Money(amount: 129, currency: "USD"), store: "PhotoLab", priority: .dream, visibleCircleIds: ["family"], createdAt: ago(3)),
-            Wish(id: "w8", ownerId: "noa", title: "Climbing gym pass", kind: .idea, visibleCircleIds: ["family"], createdAt: ago(60)),
-            Wish(id: "w9", ownerId: meId, title: "Linen bedding set", note: "Sage green, queen size.", price: Money(amount: 180, currency: "USD"), store: "Linen Co.", visibleCircleIds: [allCircles], createdAt: ago(5)),
-            Wish(id: "w10", ownerId: meId, title: "Pour-over coffee kit", price: Money(amount: 45, currency: "USD"), priority: .nice, visibleCircleIds: [allCircles], createdAt: ago(9)),
-            Wish(id: "w11", ownerId: meId, title: "Weekend in the mountains", note: "Anywhere with a fireplace.", kind: .idea, priority: .dream, visibleCircleIds: ["us"], createdAt: ago(14)),
+            Wish(id: "w1", ownerId: "maya", title: c.text("w1"), note: c.text("w1.note"), urls: [shop], price: c.price(349), store: c.text("w1.store"), visibleCircleIds: ["us", "family"], createdAt: ago(2)),
+            Wish(id: "w2", ownerId: "maya", title: c.text("w2"), note: c.text("w2.note"), kind: .idea, priority: .dream, visibleCircleIds: ["us"], createdAt: ago(1)),
+            Wish(id: "w3", ownerId: "maya", title: c.text("w3"), price: c.price(32), store: c.text("w3.store"), priority: .nice, visibleCircleIds: ["us", "family"], createdAt: ago(30)),
+            Wish(id: "w4", ownerId: "maya", title: c.text("w4"), price: c.price(85), store: c.text("w4.store"), visibleCircleIds: ["family", "us"], createdAt: ago(40)),
+            Wish(id: "w5", ownerId: "maya", title: c.text("w5"), price: c.price(18), priority: .nice, quantity: 3, visibleCircleIds: ["family"], createdAt: ago(50)),
+            Wish(id: "w6", ownerId: "mom", title: c.text("w6"), note: c.text("w6.note"), price: c.price(65), store: c.text("w6.store"), visibleCircleIds: ["family"], createdAt: ago(20)),
+            Wish(id: "w7", ownerId: "dan", title: c.text("w7"), price: c.price(129), store: c.text("w7.store"), priority: .dream, visibleCircleIds: ["family"], createdAt: ago(3)),
+            Wish(id: "w8", ownerId: "noa", title: c.text("w8"), kind: .idea, visibleCircleIds: ["family"], createdAt: ago(60)),
+            Wish(id: "w9", ownerId: meId, title: c.text("w9"), note: c.text("w9.note"), price: c.price(180), store: c.text("w9.store"), visibleCircleIds: [allCircles], createdAt: ago(5)),
+            Wish(id: "w10", ownerId: meId, title: c.text("w10"), price: c.price(45), priority: .nice, visibleCircleIds: [allCircles], createdAt: ago(9)),
+            Wish(id: "w11", ownerId: meId, title: c.text("w11"), note: c.text("w11.note"), kind: .idea, priority: .dream, visibleCircleIds: ["us"], createdAt: ago(14)),
         ]
         // Noa is getting Maya's headphones; Maya is getting Dana's coffee kit (Dana must never see it).
         claimList = [
-            Claim(wishId: "w1", wishOwnerId: "maya", claimerId: "noa", claimerName: "Noa"),
-            Claim(wishId: "w10", wishOwnerId: meId, claimerId: "maya", claimerName: "Maya", status: .purchased),
+            Claim(wishId: "w1", wishOwnerId: "maya", claimerId: "noa", claimerName: c.text("noa")),
+            Claim(wishId: "w10", wishOwnerId: meId, claimerId: "maya", claimerName: c.text("maya"), status: .purchased),
         ]
     }
 
@@ -92,7 +98,7 @@ public final class DemoBackend: Backend {
     public func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws { try await signInWithDemoData() }
     public func signInWithDemoData() async throws {
         try await Task.sleep(for: .milliseconds(250))
-        user = SessionUser(id: meId, displayName: "Dana", email: nil)
+        user = SessionUser(id: meId, displayName: peopleById[meId]?.displayName ?? "Dana", email: nil)
     }
     public func signOut() throws { user = nil }
     public func deleteAccount() async throws { user = nil }
