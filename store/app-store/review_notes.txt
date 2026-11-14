@@ -1,0 +1,10 @@
+Sign in with Apple or Google; no demo account is needed.
+
+To try the main flow:
+1. Sign in, then open the Circles tab and create a circle. A second account can join with the invite link.
+2. Tap + to add a wish: paste a product link or add a photo; the name, photo, price and store are filled in automatically (photos and pages are read by an AI service on our server).
+3. Open a wish shared by someone else and tap "I'm getting this". The wish's owner never sees who is buying what; others in the circle see it as taken.
+4. Add a birthday under Dates; reminders are sent before it.
+
+Account deletion: Settings > Delete account.
+Ads: small banner/native ads from Google AdMob, never full screen. Tracking permission is requested before personalised ads.

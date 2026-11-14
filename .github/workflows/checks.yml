@@ -18,3 +18,5 @@ jobs:
         run: node design/generate-holidays.mjs --check
       - name: iOS strings match the Android source strings
         run: python3 scripts/sync-strings.py --check
+      - name: App Store listing text fits Apple's limits
+        run: python3 store/app-store/check.py
