@@ -406,53 +406,83 @@ struct PhotoScanner: View {
     let image: UIImage
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var step = 0
+    @State private var appeared = Date.now
     private let steps = ["scan_looking", "scan_brand", "scan_price", "scan_store"]
 
     var body: some View {
         VStack(alignment: .leading, spacing: Space.s) {
             TimelineView(.animation(paused: reduceMotion)) { context in
-                let cycle = 4.2
+                let cycle = 3.8
                 let t = reduceMotion ? 0.12 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: cycle) / cycle
+                // The lens drops onto the photo with a spring; the photo dims as it lands.
+                let since = max(context.date.timeIntervalSince(appeared), 0)
+                let arrive = reduceMotion ? 1 : 1 - exp(-6 * since) * cos(9 * since)
                 GeometryReader { geo in
-                    lensScene(size: geo.size, t: t)
+                    lensScene(size: geo.size, t: t, arrive: arrive)
                 }
             }
-            .frame(height: 190)
+            .frame(height: 210)
             .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
 
             HStack(spacing: 8) {
                 Image(systemName: "sparkles").foregroundStyle(AppColor.accentText)
+                    .symbolEffect(.pulse, isActive: !reduceMotion)
+                // Each line rolls up to make room for the next.
                 Text(L(steps[step]))
                     .textStyle(.callout).foregroundStyle(AppColor.inkMuted)
                     .id(step)
-                    .transition(.opacity)
+                    .transition(.asymmetric(
+                        insertion: .move(edge: .bottom).combined(with: .opacity),
+                        removal: .move(edge: .top).combined(with: .opacity)
+                    ))
             }
+            .clipped()
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(L("reading_photo"))
         .task {
             while !Task.isCancelled {
                 try? await Task.sleep(for: .seconds(1.6))
-                withAnimation(.easeInOut(duration: 0.3)) { step = (step + 1) % steps.count }
+                withAnimation(.spring(response: 0.45, dampingFraction: 0.8)) { step = (step + 1) % steps.count }
             }
         }
     }
 
-    private func lensScene(size: CGSize, t: Double) -> some View {
-        let angle = 2 * Double.pi * t
-        let center = CGPoint(x: size.width * (0.5 + 0.30 * sin(angle)), y: size.height * (0.5 + 0.20 * sin(2 * angle)))
-        let r = size.height * 0.26
+    /// Where the lens is on its figure-8 at a given phase.
+    private func point(_ phase: Double, in size: CGSize) -> CGPoint {
+        let angle = 2 * Double.pi * phase
+        return CGPoint(x: size.width * (0.5 + 0.31 * sin(angle)), y: size.height * (0.5 + 0.19 * sin(2 * angle)))
+    }
+
+    private func lensScene(size: CGSize, t: Double, arrive: Double) -> some View {
+        let center = point(t, in: size)
+        let breathe = reduceMotion ? 0 : sin(2 * Double.pi * t * 3)
+        let r = size.height * 0.29 * arrive * (1 + 0.035 * breathe)
+        let pulse = (t * 4).truncatingRemainder(dividingBy: 1)
         let handleStart = CGPoint(x: center.x + r * 0.72, y: center.y + r * 0.72)
         let handleEnd = CGPoint(x: center.x + r * 1.32, y: center.y + r * 1.32)
         return ZStack {
-            photo(size).overlay(Color.black.opacity(0.28))
+            photo(size).overlay(Color.black.opacity(0.30 * min(arrive, 1)))
+            if !reduceMotion {
+                // Sparkles left where the lens has just looked.
+                ForEach(0..<5, id: \.self) { index in sparkle(index, t: t, size: size) }
+                // A soft trail and a pulsing halo, so the lens reads as searching.
+                ForEach(1..<4, id: \.self) { k in
+                    Circle().fill(Color.white.opacity(0.07 / Double(k)))
+                        .frame(width: r * 2 * (1 - 0.06 * Double(k)), height: r * 2 * (1 - 0.06 * Double(k)))
+                        .position(point(t - 0.018 * Double(k), in: size))
+                }
+                Circle().stroke(Color(hex: 0xF9DE9C).opacity(0.45 * (1 - pulse)), lineWidth: r * 0.05)
+                    .frame(width: r * 2 * (1.08 + 0.42 * pulse), height: r * 2 * (1.08 + 0.42 * pulse))
+                    .position(center)
+            }
             // Soft shadow so the lens floats above the photo.
-            Circle().fill(Color.black.opacity(0.22))
-                .frame(width: r * 2.12, height: r * 2.12)
-                .position(x: center.x + r * 0.10, y: center.y + r * 0.14)
+            Circle().fill(Color.black.opacity(0.24))
+                .frame(width: r * 2.14, height: r * 2.14)
+                .position(x: center.x + r * 0.10, y: center.y + r * 0.15)
             // Zoomed photo inside the lens.
             photo(size)
-                .scaleEffect(1.9, anchor: UnitPoint(x: center.x / size.width, y: center.y / size.height))
+                .scaleEffect(2, anchor: UnitPoint(x: center.x / size.width, y: center.y / size.height))
                 .mask { Circle().frame(width: r * 2, height: r * 2).position(center) }
             Path { p in p.move(to: handleStart); p.addLine(to: handleEnd) }
                 .stroke(AppColor.surface, style: StrokeStyle(lineWidth: r * 0.22, lineCap: .round))
@@ -460,11 +490,31 @@ struct PhotoScanner: View {
                 .stroke(AppColor.accent, style: StrokeStyle(lineWidth: r * 0.14, lineCap: .round))
             Circle().stroke(AppColor.surface, lineWidth: r * 0.13)
                 .frame(width: r * 2, height: r * 2).position(center)
+            // A glint that slides round the glass.
             Circle().trim(from: 0.555, to: 0.695)
-                .stroke(Color.white.opacity(0.7), style: StrokeStyle(lineWidth: r * 0.07, lineCap: .round))
-                .frame(width: r * 1.4, height: r * 1.4).position(center)
+                .stroke(Color.white.opacity(0.75), style: StrokeStyle(lineWidth: r * 0.07, lineCap: .round))
+                .frame(width: r * 1.4, height: r * 1.4)
+                .rotationEffect(.degrees(24 * breathe))
+                .position(center)
         }
         .frame(width: size.width, height: size.height)
+    }
+
+    @ViewBuilder
+    private func sparkle(_ index: Int, t: Double, size: CGSize) -> some View {
+        let spot = Double(index) / 5 + 0.04
+        let since = (t - spot + 1).truncatingRemainder(dividingBy: 1)
+        if since < 0.22 {
+            let glow = sin(Double.pi * since / 0.22)
+            let at = point(spot, in: size)
+            Image(systemName: "sparkle")
+                .font(.system(size: size.height * 0.085, weight: .bold))
+                .foregroundStyle(Color(hex: 0xF9DE9C))
+                .scaleEffect(0.5 + 0.5 * glow)
+                .rotationEffect(.degrees(90 * since))
+                .opacity(glow * 0.95)
+                .position(x: at.x + size.height * 0.10 * (index % 2 == 0 ? 1 : -1), y: at.y - size.height * (0.10 + 0.10 * since))
+        }
     }
 
     private func photo(_ size: CGSize) -> some View {

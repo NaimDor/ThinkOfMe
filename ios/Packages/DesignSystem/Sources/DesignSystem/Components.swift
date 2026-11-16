@@ -7,8 +7,12 @@ public struct PressableStyle: ButtonStyle {
     public init() {}
     public func makeBody(configuration: Configuration) -> some View {
         configuration.label
-            .scaleEffect(configuration.isPressed ? 0.97 : 1)
-            .animation(.spring(response: 0.25, dampingFraction: 0.7), value: configuration.isPressed)
+            // Sinks quickly under the finger, springs back with a little bounce.
+            .scaleEffect(configuration.isPressed ? 0.955 : 1)
+            .animation(
+                configuration.isPressed ? .spring(response: 0.16, dampingFraction: 0.8) : .spring(response: 0.42, dampingFraction: 0.5),
+                value: configuration.isPressed
+            )
     }
 }
 
@@ -165,13 +169,17 @@ public struct InitialAvatar: View {
 
 // MARK: - Countdown ring
 
-/// Days-left ring that draws in on appear; a full ring means today.
+/// Days-left ring. It sweeps in, runs a touch past the mark and settles; a bead leads
+/// the arc and flashes as it lands, and the number pops in. A full ring means today.
 public struct CountdownRing: View {
     let days: Int
     let label: String
     let window: Int
     let size: CGFloat
     @State private var progress: CGFloat = 0
+    @State private var shown = false
+    @State private var landed = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     public init(days: Int, label: String, window: Int = 30, size: CGFloat = 76) {
         self.days = days; self.label = label; self.window = window; self.size = size
@@ -188,14 +196,37 @@ public struct CountdownRing: View {
                 .trim(from: 0, to: progress)
                 .stroke(AppColor.accent, style: StrokeStyle(lineWidth: 4, lineCap: .round))
                 .rotationEffect(.degrees(-90))
+            // The bead at the tip of the arc, with a flash when it lands.
+            Circle().fill(AppColor.accent.opacity(0.35))
+                .frame(width: 7.6, height: 7.6)
+                .scaleEffect(landed ? 3.6 : 1)
+                .opacity(landed ? 0 : 1)
+                .offset(y: -size / 2)
+                .rotationEffect(.degrees(360 * Double(progress)))
+            Circle().fill(AppColor.accent)
+                .frame(width: 7.6, height: 7.6)
+                .offset(y: -size / 2)
+                .rotationEffect(.degrees(360 * Double(progress)))
             VStack(spacing: 0) {
                 Text("\(days)").font(AppFonts.display(size: 24, relativeTo: .title2)).foregroundStyle(AppColor.ink)
+                    .contentTransition(.numericText())
                 Text(label).textStyle(.tab).foregroundStyle(AppColor.inkMuted)
             }
+            .scaleEffect(shown ? 1 : 0.7)
+            .opacity(shown ? 1 : 0)
         }
         .frame(width: size, height: size)
-        .onAppear { withAnimation(.easeOut(duration: 1.2)) { progress = target } }
-        .onChange(of: days) { withAnimation(.easeOut(duration: 0.6)) { progress = target } }
+        .onAppear {
+            guard !shown else { return }
+            if reduceMotion {
+                progress = target; shown = true; landed = true
+                return
+            }
+            withAnimation(.spring(response: 0.95, dampingFraction: 0.62).delay(0.12)) { progress = target }
+            withAnimation(.spring(response: 0.5, dampingFraction: 0.5)) { shown = true }
+            withAnimation(.easeOut(duration: 0.9).delay(1.15)) { landed = true }
+        }
+        .onChange(of: days) { withAnimation(.spring(response: 0.7, dampingFraction: 0.7)) { progress = target } }
         .accessibilityElement(children: .combine)
     }
 }
@@ -308,3 +339,33 @@ struct ShimmerFill: View {
         }
     }
 }
+
+// MARK: - Entrances
+
+/// Rows rise into place on a soft spring, one after the other.
+struct RiseIn: ViewModifier {
+    let index: Int
+    @State private var shown = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+
+    func body(content: Content) -> some View {
+        content
+            .opacity(shown ? 1 : 0)
+            .scaleEffect(shown ? 1 : 0.96)
+            .offset(y: shown ? 0 : 26)
+            .onAppear {
+                guard !shown else { return }
+                if reduceMotion {
+                    shown = true
+                } else {
+                    withAnimation(.spring(response: 0.55, dampingFraction: 0.72).delay(0.07 * Double(min(index, 8)))) { shown = true }
+                }
+            }
+    }
+}
+
+public extension View {
+    /// Staggered entrance for list content; `index` sets the row's turn.
+    func riseIn(_ index: Int) -> some View { modifier(RiseIn(index: index)) }
+}
+

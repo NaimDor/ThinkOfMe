@@ -69,6 +69,7 @@ struct HomeView: View {
                         onView: { next.person.map { openPerson($0.id) } }
                     )
                     .padding(.bottom, Space.xl)
+                    .riseIn(0)
                     .transition(.opacity.combined(with: .offset(y: 8)))
                 }
 
@@ -81,6 +82,7 @@ struct HomeView: View {
                     ForEach(Array(overview.people.enumerated()), id: \.element.id) { index, summary in
                         Button { openPerson(summary.person.id) } label: { row(summary) }
                             .buttonStyle(.plain)
+                            .riseIn(index + 1)
                         if index < overview.people.count - 1 { Hairline() }
                         if index == 5 { NativeAdCard().padding(.vertical, Space.xs) }
                     }

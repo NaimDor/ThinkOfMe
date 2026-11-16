@@ -1,8 +1,9 @@
 import SwiftUI
 
-/// The "wrap it" moment. When `isWrapped` turns true the stage lifts and tilts
-/// in 3D, a gold ribbon wraps it, the bow springs on and sparkles burst, with
-/// haptics. At rest the stage is flat; a wrapped stage keeps its ribbon.
+/// The "wrap it" moment. When `isWrapped` turns true the stage lifts toward you and
+/// rocks in 3D on one continuous curve, a gold ribbon sweeps around it, the bow drops
+/// on with a springy wobble, a glint runs along the ribbon and sparkles burst in two
+/// waves, with haptics. At rest the stage is flat; a wrapped stage keeps its ribbon.
 public struct WrapStage<Content: View>: View {
     let isWrapped: Bool
     let content: Content
@@ -12,9 +13,13 @@ public struct WrapStage<Content: View>: View {
     @State private var vertical: CGFloat
     @State private var horizontal: CGFloat
     @State private var bow: CGFloat
-    @State private var tilt: Double = 0
-    @State private var lift: CGFloat = 1
-    @State private var burst = 0
+    @State private var shine: CGFloat = 0
+    /// When the rocking started; nil at rest.
+    @State private var rockStart: Date?
+    /// When the sparkles started; nil at rest.
+    @State private var burstStart: Date?
+    @State private var bursts = 0
+    @State private var taps = 0
 
     public init(isWrapped: Bool, @ViewBuilder content: () -> Content) {
         self.isWrapped = isWrapped
@@ -24,34 +29,74 @@ public struct WrapStage<Content: View>: View {
         _bow = State(initialValue: isWrapped ? 1 : 0)
     }
 
-    private static var ribbon: LinearGradient {
-        LinearGradient(colors: [Color(hex: 0xC98E2F), Color(hex: 0xF9DE9C), Color(hex: 0xF2C46D), Color(hex: 0xD79B3A)], startPoint: .leading, endPoint: .trailing)
-    }
+    private var rockDuration: Double { 1.25 }
+    private var ribbonColors: [Color] { [Color(hex: 0xC98E2F), Color(hex: 0xF9DE9C), Color(hex: 0xF2C46D), Color(hex: 0xD79B3A)] }
 
     public var body: some View {
+        TimelineView(.animation(paused: rockStart == nil)) { context in
+            // One continuous curve: rock back, swing forward a little, settle flat (a damped sine).
+            let t = rockProgress(at: context.date)
+            let rise = sin(Double.pi * t)
+            let tilt = 30 * sin(2 * Double.pi * t) * (1 - t) * (1 - t).squareRoot()
+            stage
+                .scaleEffect(1 + 0.055 * rise)
+                .offset(y: -10 * rise)
+                .rotation3DEffect(.degrees(tilt), axis: (x: 1, y: -0.55, z: 0), perspective: 0.6)
+        }
+        .overlay {
+            SparkleBurst(start: burstStart)
+                .frame(width: 440, height: 440)
+                .offset(y: -22)
+        }
+        .sensoryFeedback(.impact(weight: .light), trigger: taps)
+        .sensoryFeedback(.success, trigger: bursts)
+        .onChange(of: isWrapped) { _, wrapped in animate(wrapped) }
+        .accessibilityElement(children: .contain)
+    }
+
+    private var stage: some View {
         ZStack {
             content
             Rectangle()
-                .fill(Self.ribbon)
+                .fill(LinearGradient(colors: ribbonColors, startPoint: .leading, endPoint: .trailing))
                 .frame(width: 32)
+                .overlay { glint(alongHeight: true) }
                 .scaleEffect(x: 1, y: vertical, anchor: .top)
             Rectangle()
-                .fill(LinearGradient(colors: [Color(hex: 0xC98E2F), Color(hex: 0xF9DE9C), Color(hex: 0xF2C46D), Color(hex: 0xD79B3A)], startPoint: .top, endPoint: .bottom))
+                .fill(LinearGradient(colors: ribbonColors, startPoint: .top, endPoint: .bottom))
                 .frame(height: 32)
+                .overlay { glint(alongHeight: false) }
                 .scaleEffect(x: horizontal, y: 1, anchor: layoutDirection == .rightToLeft ? .trailing : .leading)
             BowShape()
                 .fill(LinearGradient(colors: [Color(hex: 0xFBE3A8), Color(hex: 0xF2C46D), Color(hex: 0xC98E2F)], startPoint: .topLeading, endPoint: .bottomTrailing))
-                .frame(width: 116, height: 68)
-                .offset(y: -22)
+                .frame(width: 124, height: 72)
                 .scaleEffect(bow)
-                .rotationEffect(.degrees(Double(1 - bow) * -25))
-            SparkleBurst(trigger: burst)
+                .rotationEffect(.degrees(Double(1 - bow) * -32))
+                .offset(y: -22 - 36 * (1 - min(bow, 1)))
+                .opacity(Double(min(bow * 3, 1)))
         }
-        .scaleEffect(lift)
-        .rotation3DEffect(.degrees(tilt), axis: (x: 1, y: -0.5, z: 0), perspective: 0.6)
-        .sensoryFeedback(.success, trigger: burst)
-        .onChange(of: isWrapped) { _, wrapped in animate(wrapped) }
-        .accessibilityElement(children: .contain)
+    }
+
+    /// A band of light that travels along a ribbon once. It rests off either end, out of sight.
+    private func glint(alongHeight: Bool) -> some View {
+        GeometryReader { geo in
+            let length: CGFloat = 120
+            let travel = (alongHeight ? geo.size.height : geo.size.width) + length
+            LinearGradient(
+                colors: [.clear, .white.opacity(0.75), .clear],
+                startPoint: alongHeight ? .top : .leading, endPoint: alongHeight ? .bottom : .trailing
+            )
+            .frame(width: alongHeight ? geo.size.width : length, height: alongHeight ? length : geo.size.height)
+            .frame(width: geo.size.width, height: geo.size.height)
+            .offset(x: alongHeight ? 0 : (shine - 0.5) * travel, y: alongHeight ? (shine - 0.5) * travel : 0)
+        }
+        .clipped()
+        .allowsHitTesting(false)
+    }
+
+    private func rockProgress(at date: Date) -> Double {
+        guard let rockStart else { return 0 }
+        return min(max(date.timeIntervalSince(rockStart) / rockDuration, 0), 1)
     }
 
     private func animate(_ wrapped: Bool) {
@@ -62,21 +107,27 @@ public struct WrapStage<Content: View>: View {
             return
         }
         guard wrapped else {
-            withAnimation(.easeIn(duration: 0.18)) { bow = 0 }
-            withAnimation(.easeInOut(duration: 0.26)) { horizontal = 0 }
-            withAnimation(.easeInOut(duration: 0.26).delay(0.12)) { vertical = 0 }
+            shine = 0
+            withAnimation(.easeInOut(duration: 0.24)) { bow = 0 }
+            withAnimation(.timingCurve(0.5, 0, 0.15, 1, duration: 0.34).delay(0.06)) { horizontal = 0 }
+            withAnimation(.timingCurve(0.5, 0, 0.15, 1, duration: 0.34).delay(0.16)) { vertical = 0 }
             return
         }
-        // Tilt back, overshoot forward, settle flat.
-        withAnimation(.easeOut(duration: 0.3)) { tilt = 16; lift = 0.95 }
-        withAnimation(.easeInOut(duration: 0.35).delay(0.3)) { tilt = -5; lift = 1.02 }
-        withAnimation(.spring(response: 0.4, dampingFraction: 0.7).delay(0.65)) { tilt = 0; lift = 1 }
-        withAnimation(.easeInOut(duration: 0.5).delay(0.15)) { vertical = 1 }
-        withAnimation(.easeInOut(duration: 0.5).delay(0.35)) { horizontal = 1 }
-        withAnimation(.spring(response: 0.45, dampingFraction: 0.45).delay(0.7)) { bow = 1 }
+        taps += 1
+        shine = 0
+        rockStart = .now
+        // The ribbon is pulled round with a slow start and a long glide.
+        withAnimation(.timingCurve(0.5, 0, 0.15, 1, duration: 0.62).delay(0.12)) { vertical = 1 }
+        withAnimation(.timingCurve(0.5, 0, 0.15, 1, duration: 0.62).delay(0.30)) { horizontal = 1 }
+        withAnimation(.spring(response: 0.55, dampingFraction: 0.36).delay(0.72)) { bow = 1 }
+        withAnimation(.easeInOut(duration: 0.9).delay(0.98)) { shine = 1 }
         Task { @MainActor in
-            try? await Task.sleep(for: .milliseconds(820))
-            burst += 1
+            try? await Task.sleep(for: .milliseconds(840))
+            bursts += 1
+            burstStart = .now
+            try? await Task.sleep(for: .milliseconds(1700))
+            rockStart = nil
+            burstStart = nil
         }
     }
 }
@@ -100,34 +151,71 @@ struct BowShape: Shape {
     }
 }
 
+/// A four-point sparkle around the origin.
+func sparklePath(radius: CGFloat) -> Path {
+    let pinch = radius * 0.22
+    var path = Path()
+    path.move(to: CGPoint(x: 0, y: -radius))
+    path.addQuadCurve(to: CGPoint(x: radius, y: 0), control: CGPoint(x: pinch, y: -pinch))
+    path.addQuadCurve(to: CGPoint(x: 0, y: radius), control: CGPoint(x: pinch, y: pinch))
+    path.addQuadCurve(to: CGPoint(x: -radius, y: 0), control: CGPoint(x: -pinch, y: pinch))
+    path.addQuadCurve(to: CGPoint(x: 0, y: -radius), control: CGPoint(x: -pinch, y: -pinch))
+    path.closeSubpath()
+    return path
+}
+
+/// Two waves of sparkles flying out from the bow, with a soft ring of light.
 struct SparkleBurst: View {
-    let trigger: Int
-    @State private var progress: CGFloat = 0
+    let start: Date?
+
+    private struct Spark {
+        let angle: Double, distance: Double, size: Double, delay: Double, color: Int
+    }
+
+    // A wide first wave, then a closer, slower second one.
+    private static let sparks: [Spark] =
+        (0..<9).map { i in Spark(angle: (-90 + Double(i) * 40 + Double(i % 2) * 9) * .pi / 180, distance: 150 + Double(i % 3) * 22, size: 9 + Double(i % 3) * 3, delay: 0, color: i % 4) }
+        + (0..<7).map { i in Spark(angle: (-64 + Double(i) * 51) * .pi / 180, distance: 86 + Double(i % 2) * 18, size: 6 + Double(i % 2) * 3, delay: 0.16, color: (i + 1) % 4) }
 
     var body: some View {
-        ZStack {
-            ForEach(0..<6, id: \.self) { index in
-                let angle = Angle.degrees(-140 + Double(index) * 52)
-                Image(systemName: "sparkle")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(index % 3 == 2 ? AppColor.accent : Color(hex: 0xE3A94A))
-                    .offset(x: cos(angle.radians) * 120 * progress, y: sin(angle.radians) * 120 * progress)
-                    .rotationEffect(.degrees(90 * progress))
-                    .scaleEffect(progress)
-                    .opacity(progress < 0.7 ? 1 : (1 - (progress - 0.7) / 0.3))
+        let palette = [Color(hex: 0xE3A94A), Color(hex: 0xF9DE9C), AppColor.accent, Color.white]
+        let sparks = Self.sparks
+        return TimelineView(.animation(paused: start == nil)) { context in
+            let p = start.map { context.date.timeIntervalSince($0) / 1.5 } ?? 0
+            Canvas { ctx, size in
+                guard p > 0, p < 1 else { return }
+                let center = CGPoint(x: size.width / 2, y: size.height / 2)
+                // Ring of light.
+                let ring = min(p / 0.55, 1)
+                let ringEase = 1 - (1 - ring) * (1 - ring)
+                let radius = 30 + 150 * ringEase
+                ctx.stroke(
+                    Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)),
+                    with: .color(Color(hex: 0xF9DE9C).opacity(0.55 * (1 - ring))),
+                    lineWidth: 10 * (1 - ring) + 1
+                )
+                for spark in sparks {
+                    let local = min(max((p - spark.delay) / (1 - spark.delay), 0), 1)
+                    guard local > 0 else { continue }
+                    let out = 1 - pow(1 - local, 3)
+                    let x = cos(spark.angle) * spark.distance * out
+                    let y = sin(spark.angle) * spark.distance * out + 46 * local * local
+                    let grow = min(local / 0.18, 1)
+                    let fade = local < 0.55 ? 1 : 1 - (local - 0.55) / 0.45
+                    let transform = CGAffineTransform(translationX: center.x + x, y: center.y + y).rotated(by: 140 * local * .pi / 180)
+                    ctx.fill(
+                        sparklePath(radius: spark.size * grow * (0.7 + 0.3 * fade)).applying(transform),
+                        with: .color(palette[spark.color].opacity(fade))
+                    )
+                }
             }
         }
         .allowsHitTesting(false)
-        .opacity(trigger == 0 ? 0 : 1)
-        .onChange(of: trigger) {
-            progress = 0
-            withAnimation(.easeOut(duration: 0.9)) { progress = 1 }
-        }
         .accessibilityHidden(true)
     }
 }
 
-/// A small gift box that floats and turns in 3D: used for empty states,
+/// A small gift box that floats, turns in 3D and twinkles: used for empty states,
 /// onboarding and sign in.
 public struct GiftBoxMoment: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -135,11 +223,17 @@ public struct GiftBoxMoment: View {
 
     public var body: some View {
         TimelineView(.animation(paused: reduceMotion)) { context in
-            let t = context.date.timeIntervalSinceReferenceDate
+            // One looping phase drives everything, so the turn, the float and the twinkles stay in step.
+            let phase = context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 5.6) / 5.6
+            let turn = reduceMotion ? 0 : sin(2 * Double.pi * phase)
+            let float = reduceMotion ? 0 : sin(4 * Double.pi * phase)
             GeometryReader { geo in
                 let w = geo.size.width, h = geo.size.height
                 ZStack {
-                    Ellipse().fill(.black.opacity(0.08)).frame(width: w * 0.56, height: h * 0.08).position(x: w / 2, y: h * 0.9)
+                    // The shadow stays on the ground and tightens as the box rises.
+                    Ellipse().fill(.black.opacity(0.10 - 0.03 * float))
+                        .frame(width: w * 0.56 * (1 - 0.16 * float), height: h * 0.075)
+                        .position(x: w / 2, y: h * 0.905)
                     ZStack {
                         RoundedRectangle(cornerRadius: w * 0.05).fill(AppColor.accent)
                             .frame(width: w * 0.52, height: h * 0.4).position(x: w / 2, y: h * 0.62)
@@ -150,11 +244,29 @@ public struct GiftBoxMoment: View {
                         BowShape().fill(Color(hex: 0xE3A94A))
                             .frame(width: w * 0.5, height: h * 0.28).position(x: w / 2, y: h * 0.25)
                     }
-                    .rotation3DEffect(.degrees(reduceMotion ? 0 : sin(t * 0.9) * 22), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
-                    .offset(y: reduceMotion ? 0 : sin(t * 2.6) * 4)
+                    .scaleEffect(x: 1, y: 1 + 0.018 * float)
+                    .rotationEffect(.degrees(turn * -3))
+                    .rotation3DEffect(.degrees(turn * 26), axis: (x: 0, y: 1, z: 0), perspective: 0.5)
+                    .offset(y: -float * 7 - 2)
+                    // Twinkles around the box, each on its own beat.
+                    twinkle(phase: phase, offset: 0.00).position(x: w * 0.16, y: h * 0.24)
+                    twinkle(phase: phase, offset: 0.37).position(x: w * 0.86, y: h * 0.36)
+                    twinkle(phase: phase, offset: 0.68).position(x: w * 0.78, y: h * 0.10)
                 }
+                .frame(width: w, height: h)
             }
         }
         .accessibilityHidden(true)
+    }
+
+    private func twinkle(phase: Double, offset: Double) -> some View {
+        let beat = reduceMotion ? 0.5 : (phase * 2 + offset).truncatingRemainder(dividingBy: 1)
+        let glow = sin(Double.pi * beat)
+        return Image(systemName: "sparkle")
+            .font(.system(size: 13, weight: .bold))
+            .foregroundStyle(Color(hex: 0xE3A94A))
+            .scaleEffect(0.4 + 0.6 * glow)
+            .rotationEffect(.degrees(45 * beat))
+            .opacity(glow)
     }
 }
