@@ -402,6 +402,9 @@ private struct PhotoReadingStatus: View {
 
 /// The photo with a magnifying glass gliding over it in a figure-8, the lens showing the
 /// photo zoomed in, and a line saying what it is looking for. Still when Reduce Motion is on.
+/// Light gold of the ribbon (#F9DE9C), for the scanner's halo and sparkles.
+private let scanGold = Color(red: 249 / 255, green: 222 / 255, blue: 156 / 255)
+
 struct PhotoScanner: View {
     let image: UIImage
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -475,7 +478,7 @@ struct PhotoScanner: View {
                         .frame(width: trail, height: trail)
                         .position(point(t - 0.018 * step, in: size))
                 }
-                Circle().stroke(Color(hex: 0xF9DE9C).opacity(0.45 * (1 - pulse)), lineWidth: r * 0.05)
+                Circle().stroke(scanGold.opacity(0.45 * (1 - pulse)), lineWidth: r * 0.05)
                     .frame(width: halo, height: halo)
                     .position(center)
             }
@@ -515,7 +518,7 @@ struct PhotoScanner: View {
             let y: CGFloat = at.y - size.height * CGFloat(0.10 + 0.10 * since)
             Image(systemName: "sparkle")
                 .font(.system(size: size.height * 0.085, weight: .bold))
-                .foregroundStyle(Color(hex: 0xF9DE9C))
+                .foregroundStyle(scanGold)
                 .scaleEffect(0.5 + 0.5 * glow)
                 .rotationEffect(.degrees(90 * since))
                 .opacity(glow * 0.95)
