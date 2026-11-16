@@ -258,13 +258,23 @@ private fun PersonRow(summary: PersonSummary, onClick: () -> Unit) {
     )
 }
 
-/** Gentle staggered entrance for list content. */
+/** Staggered entrance for list content: each row rises into place on a soft spring, one after the other. */
 @Composable
 private fun FadeIn(index: Int, content: @Composable () -> Unit) {
-    val alpha = remember { Animatable(0f) }
+    val reduceMotion = com.thinkofme.core.designsystem.component.rememberReduceMotion()
+    val rise = remember { Animatable(if (reduceMotion) 1f else 0f) }
     LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(40L * index.coerceAtMost(8))
-        alpha.animateTo(1f, tween(380))
+        if (reduceMotion) return@LaunchedEffect
+        kotlinx.coroutines.delay(70L * index.coerceAtMost(8))
+        rise.animateTo(1f, androidx.compose.animation.core.spring(dampingRatio = 0.72f, stiffness = 170f))
     }
-    Box(Modifier.graphicsLayer { this.alpha = alpha.value; translationY = (1f - alpha.value) * 8.dp.toPx() }) { content() }
+    Box(
+        Modifier.graphicsLayer {
+            val v = rise.value
+            alpha = (v * 1.6f).coerceIn(0f, 1f)
+            translationY = (1f - v) * 26.dp.toPx()
+            scaleX = 0.96f + 0.04f * v
+            scaleY = 0.96f + 0.04f * v
+        },
+    ) { content() }
 }

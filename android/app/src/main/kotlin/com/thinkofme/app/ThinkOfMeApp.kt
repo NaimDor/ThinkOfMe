@@ -5,6 +5,18 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.navigation.NavDestination
+import androidx.compose.ui.unit.IntOffset
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.runtime.remember
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.core.spring
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -154,7 +166,24 @@ private fun MainNavigation(incoming: Flow<IncomingIntent>, onIncomingHandled: ()
     }
 
     Box(Modifier.fillMaxSize().background(AppTheme.colors.canvas)) {
-        NavHost(nav, startDestination = HomeRoute, modifier = Modifier.fillMaxSize()) {
+        // Pushing a screen glides it in from the side while the old one fades back; tabs fade through.
+        fun NavDestination.isTab() = Tab.entries.any { hasRoute(it.route::class) }
+        val glide = tween<IntOffset>(420, easing = CubicBezierEasing(0.2f, 0.9f, 0.2f, 1f))
+        NavHost(
+            nav,
+            startDestination = HomeRoute,
+            modifier = Modifier.fillMaxSize(),
+            enterTransition = {
+                if (initialState.destination.isTab() && targetState.destination.isTab()) fadeIn(tween(260, delayMillis = 60)) + scaleIn(tween(320), initialScale = 0.985f)
+                else fadeIn(tween(300)) + slideIntoContainer(AnimatedContentTransitionScope.SlideDirection.Start, glide) { it / 5 }
+            },
+            exitTransition = {
+                if (initialState.destination.isTab() && targetState.destination.isTab()) fadeOut(tween(140))
+                else fadeOut(tween(220)) + scaleOut(tween(420), targetScale = 0.97f)
+            },
+            popEnterTransition = { fadeIn(tween(300)) + scaleIn(tween(420), initialScale = 0.97f) },
+            popExitTransition = { fadeOut(tween(220)) + slideOutOfContainer(AnimatedContentTransitionScope.SlideDirection.End, glide) { it / 5 } },
+        ) {
             homeScreen(
                 onOpenPerson = { nav.navigate(PersonRoute(it)) },
                 onOpenProfile = { nav.navigate(SettingsRoute) },
@@ -214,12 +243,20 @@ private fun BottomBar(current: Tab?, onSelect: (Tab) -> Unit, onAdd: () -> Unit)
 
 @Composable
 private fun TabItem(tab: Tab, selected: Boolean, onSelect: (Tab) -> Unit) {
-    val color = if (selected) AppTheme.colors.accentText else AppTheme.colors.inkMuted
+    val color by animateColorAsState(if (selected) AppTheme.colors.accentText else AppTheme.colors.inkMuted, tween(220), label = "tab")
+    // The icon hops when its tab becomes the selected one.
+    val hop = remember { Animatable(1f) }
+    LaunchedEffect(selected) {
+        if (selected) {
+            hop.snapTo(0.8f)
+            hop.animateTo(1f, spring(dampingRatio = 0.4f, stiffness = 380f))
+        }
+    }
     Column(
         Modifier.width(64.dp).clip(CircleShape).pressable(onClick = { onSelect(tab) }, role = Role.Tab).padding(vertical = 4.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        Icon(tab.icon, null, tint = color, modifier = Modifier.size(24.dp))
+        Icon(tab.icon, null, tint = color, modifier = Modifier.size(24.dp).graphicsLayer { scaleX = hop.value; scaleY = hop.value })
         Text(stringResource(tab.label), style = AppTheme.type.tab, color = color, maxLines = 1)
     }
 }

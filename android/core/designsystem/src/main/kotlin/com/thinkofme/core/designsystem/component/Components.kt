@@ -3,6 +3,10 @@ package com.thinkofme.core.designsystem.component
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.delay
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.spring
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Canvas
@@ -62,7 +66,12 @@ fun Modifier.pressable(
 ): Modifier {
     val interaction = remember { MutableInteractionSource() }
     val pressed by interaction.collectIsPressedAsState()
-    val scale by animateFloatAsState(if (pressed) 0.97f else 1f, spring(stiffness = 900f, dampingRatio = 0.7f), label = "press")
+    // Sinks quickly under the finger, springs back with a little bounce.
+    val scale by animateFloatAsState(
+        if (pressed) 0.955f else 1f,
+        if (pressed) spring(stiffness = 1200f, dampingRatio = 0.8f) else spring(stiffness = 420f, dampingRatio = 0.48f),
+        label = "press",
+    )
     return this
         .scale(scale)
         .clickable(interactionSource = interaction, indication = null, enabled = enabled, role = role, onClickLabel = onClickLabel, onClick = onClick)
@@ -200,7 +209,18 @@ fun CountdownRing(
     val colors = AppTheme.colors
     val target = (1f - (days.coerceIn(0, windowDays.toLong()).toFloat() / windowDays)).coerceIn(0.04f, 1f)
     val progress = remember { Animatable(0f) }
-    LaunchedEffect(target) { progress.animateTo(target, tween(1200, easing = FastOutSlowInEasing)) }
+    val pop = remember { Animatable(0.7f) }
+    val glow = remember { Animatable(0f) }
+    LaunchedEffect(target) {
+        // Sweeps round, runs a touch past the mark and eases back onto it.
+        launch { progress.animateTo(target, tween(1500, delayMillis = 120, easing = CubicBezierEasing(0.22f, 1.18f, 0.36f, 1f))) }
+        launch { pop.animateTo(1f, spring(dampingRatio = 0.45f, stiffness = 220f)) }
+        launch {
+            delay(1150)
+            glow.snapTo(1f)
+            glow.animateTo(0f, tween(900, easing = FastOutSlowInEasing))
+        }
+    }
     val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
 
     Box(modifier.size(size).semantics { contentDescription = accessibilityLabel }, contentAlignment = Alignment.Center) {
@@ -210,10 +230,20 @@ fun CountdownRing(
             val arcSize = androidx.compose.ui.geometry.Size(this.size.width - stroke, this.size.height - stroke)
             val topLeft = androidx.compose.ui.geometry.Offset(inset, inset)
             drawArc(colors.accentTrack, 0f, 360f, false, topLeft, arcSize, style = Stroke(stroke))
-            val sweep = 360f * progress.value
-            drawArc(colors.accent, -90f, if (rtl) -sweep else sweep, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+            val sweep = (360f * progress.value).coerceIn(0f, 360f)
+            val signed = if (rtl) -sweep else sweep
+            drawArc(colors.accent, -90f, signed, false, topLeft, arcSize, style = Stroke(stroke, cap = StrokeCap.Round))
+            // A bead leads the arc and flashes softly as it lands.
+            val angle = Math.toRadians((-90f + signed).toDouble())
+            val radius = arcSize.width / 2
+            val tip = androidx.compose.ui.geometry.Offset(center.x + radius * kotlin.math.cos(angle).toFloat(), center.y + radius * kotlin.math.sin(angle).toFloat())
+            if (glow.value > 0f) drawCircle(colors.accent, stroke * (1.2f + 2.6f * (1f - glow.value)), tip, alpha = 0.35f * glow.value)
+            drawCircle(colors.accent, stroke * 0.95f, tip)
         }
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(
+            Modifier.graphicsLayer { scaleX = pop.value; scaleY = pop.value; alpha = ((pop.value - 0.7f) / 0.2f).coerceIn(0f, 1f) },
+            horizontalAlignment = Alignment.CenterHorizontally,
+        ) {
             Text(days.toString(), style = AppTheme.type.displayMedium.copy(fontSize = AppTheme.type.displayMedium.fontSize * 0.92f), color = colors.ink)
             Text(label, style = AppTheme.type.tab, color = colors.inkMuted)
         }

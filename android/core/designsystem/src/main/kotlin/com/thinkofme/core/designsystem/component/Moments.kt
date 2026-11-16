@@ -3,6 +3,10 @@ package com.thinkofme.core.designsystem.component
 import android.provider.Settings
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.ui.graphics.drawscope.rotate
+import androidx.compose.ui.graphics.drawscope.clipRect
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.animation.core.CubicBezierEasing
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -64,13 +68,12 @@ fun rememberReduceMotion(): Boolean {
     }
 }
 
-private val ribbonBrushVertical = Brush.horizontalGradient(listOf(Color(0xFFC98E2F), Color(0xFFF9DE9C), Color(0xFFF2C46D), Color(0xFFD79B3A)))
-private val ribbonBrushHorizontal = Brush.verticalGradient(listOf(Color(0xFFC98E2F), Color(0xFFF9DE9C), Color(0xFFF2C46D), Color(0xFFD79B3A)))
-
 /**
- * The "wrap it" moment. When [wrapped] turns true the stage lifts and tilts
- * in 3D, a gold ribbon wraps it, the bow springs on and sparkles burst, with
- * a haptic tick. At rest the stage is flat; a wrapped stage keeps its ribbon.
+ * The "wrap it" moment. When [wrapped] turns true the stage lifts toward you and
+ * rocks in 3D on one continuous curve, a gold ribbon sweeps around it, the bow
+ * drops on with a springy wobble, a glint runs along the ribbon and sparkles
+ * burst in two waves, with haptics. At rest the stage is flat; a wrapped stage
+ * keeps its ribbon.
  */
 @Composable
 fun WrapStage(
@@ -86,6 +89,7 @@ fun WrapStage(
     val vertical = remember { Animatable(if (wrapped) 1f else 0f) }
     val horizontal = remember { Animatable(if (wrapped) 1f else 0f) }
     val bow = remember { Animatable(if (wrapped) 1f else 0f) }
+    val shine = remember { Animatable(0f) }
     var burst by remember { mutableIntStateOf(0) }
     var previous by remember { mutableIntStateOf(if (wrapped) 1 else 0) }
 
@@ -101,74 +105,107 @@ fun WrapStage(
             haptics.performHapticFeedback(HapticFeedbackType.ContextClick)
             launch {
                 lift.snapTo(0f)
-                lift.animateTo(1f, keyframes { durationMillis = 1000 })
+                lift.animateTo(1f, tween(1250, easing = LinearEasing))
             }
-            launch { delay(150); vertical.animateTo(1f, tween(500, easing = FastOutSlowInEasing)) }
-            launch { delay(350); horizontal.animateTo(1f, tween(500, easing = FastOutSlowInEasing)) }
+            launch { delay(120); vertical.animateTo(1f, tween(620, easing = RibbonEasing)) }
+            launch { delay(300); horizontal.animateTo(1f, tween(620, easing = RibbonEasing)) }
             launch {
-                delay(700)
-                bow.animateTo(1f, spring(dampingRatio = 0.42f, stiffness = 420f))
+                delay(720)
+                bow.animateTo(1f, spring(dampingRatio = 0.34f, stiffness = 260f))
             }
             launch {
-                delay(820)
+                delay(840)
                 haptics.performHapticFeedback(HapticFeedbackType.Confirm)
                 burst++
             }
+            launch {
+                shine.snapTo(0f)
+                delay(980)
+                shine.animateTo(1f, tween(900, easing = FastOutSlowInEasing))
+            }
         } else {
-            launch { bow.animateTo(0f, tween(180)) }
-            launch { horizontal.animateTo(0f, tween(260)) }
-            launch { delay(120); vertical.animateTo(0f, tween(260)) }
+            launch { bow.animateTo(0f, tween(240, easing = FastOutSlowInEasing)) }
+            launch { delay(60); horizontal.animateTo(0f, tween(340, easing = RibbonEasing)) }
+            launch { delay(160); vertical.animateTo(0f, tween(340, easing = RibbonEasing)) }
         }
     }
 
-    // 0→1 over the lift: tilt back, overshoot forward, settle flat.
-    val t = lift.value
-    val tiltX = when {
-        t <= 0f || t >= 1f -> 0f
-        t < 0.3f -> 16f * (t / 0.3f)
-        t < 0.65f -> 16f - 21f * ((t - 0.3f) / 0.35f)
-        else -> -5f * (1f - (t - 0.65f) / 0.35f)
-    }
-    val scale = 1f - 0.05f * sin(Math.PI * t.coerceIn(0f, 1f)).toFloat()
+    // One continuous curve: rock back, swing forward a little, settle flat (a damped sine).
+    val t = lift.value.coerceIn(0f, 1f)
+    val damp = (1f - t) * kotlin.math.sqrt(1f - t)
+    val tiltX = 30f * sin(2.0 * Math.PI * t).toFloat() * damp
+    val rise = sin(Math.PI * t).toFloat()
 
     Box(
         modifier.graphicsLayer {
             rotationX = tiltX
-            rotationY = tiltX * -0.5f
-            scaleX = scale
-            scaleY = scale
-            cameraDistance = 14f * density
+            rotationY = tiltX * -0.55f
+            scaleX = 1f + 0.055f * rise
+            scaleY = 1f + 0.055f * rise
+            translationY = -10.dp.toPx() * rise
+            cameraDistance = 12f * density
         },
     ) {
         content()
 
-        Box(
-            Modifier
-                .align(Alignment.Center)
-                .width(32.dp)
-                .fillMaxHeight()
-                .graphicsLayer { scaleY = vertical.value; transformOrigin = TransformOrigin(0.5f, 0f) }
-                .background(ribbonBrushVertical),
-        )
-        Box(
-            Modifier
-                .align(Alignment.Center)
-                .fillMaxWidth()
-                .height(32.dp)
-                .graphicsLayer { scaleX = horizontal.value; transformOrigin = TransformOrigin(if (rtl) 1f else 0f, 0.5f) }
-                .background(ribbonBrushHorizontal),
-        )
+        // Ribbons and the glint that runs along them once the bow is on.
+        Canvas(Modifier.fillMaxSize()) {
+            val band = 32.dp.toPx()
+            val cx = (size.width - band) / 2
+            val cy = (size.height - band) / 2
+            val v = vertical.value
+            val h = horizontal.value
+            if (v > 0f) {
+                drawRect(ribbonBrushVertical(cx, band), topLeft = Offset(cx, 0f), size = Size(band, size.height * v))
+            }
+            if (h > 0f) {
+                val width = size.width * h
+                drawRect(ribbonBrushHorizontal(cy, band), topLeft = Offset(if (rtl) size.width - width else 0f, cy), size = Size(width, band))
+            }
+            val s = shine.value
+            if (s > 0f && s < 1f) {
+                val glint = 120.dp.toPx()
+                val fade = sin(Math.PI * s).toFloat()
+                val y = -glint + (size.height + glint) * s
+                clipRect(cx, 0f, cx + band, size.height) {
+                    drawRect(
+                        Brush.verticalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.75f * fade), Color.Transparent), startY = y, endY = y + glint),
+                        topLeft = Offset(cx, y), size = Size(band, glint),
+                    )
+                }
+                val x = if (rtl) size.width - (size.width + glint) * s else -glint + (size.width + glint) * s
+                clipRect(0f, cy, size.width, cy + band) {
+                    drawRect(
+                        Brush.horizontalGradient(listOf(Color.Transparent, Color.White.copy(alpha = 0.75f * fade), Color.Transparent), startX = x, endX = x + glint),
+                        topLeft = Offset(x, cy), size = Size(glint, band),
+                    )
+                }
+            }
+        }
         Canvas(
             Modifier
                 .align(Alignment.Center)
                 .offset(y = (-22).dp)
-                .size(width = 116.dp, height = 68.dp)
-                .graphicsLayer { scaleX = bow.value; scaleY = bow.value; rotationZ = (1f - bow.value) * -25f },
+                .size(width = 124.dp, height = 72.dp)
+                .graphicsLayer {
+                    val b = bow.value
+                    scaleX = b; scaleY = b
+                    rotationZ = (1f - b) * -32f
+                    translationY = (1f - b.coerceAtMost(1f)) * -36.dp.toPx()
+                    alpha = (b * 3f).coerceIn(0f, 1f)
+                },
         ) { drawBow() }
 
         if (burst > 0) SparkleBurst(key = burst, modifier = Modifier.align(Alignment.Center))
     }
 }
+
+/** Slow start, long glide: the ribbon is pulled around the gift. */
+private val RibbonEasing = CubicBezierEasing(0.5f, 0f, 0.15f, 1f)
+
+private val ribbonColors = listOf(Color(0xFFC98E2F), Color(0xFFF9DE9C), Color(0xFFF2C46D), Color(0xFFD79B3A))
+private fun ribbonBrushVertical(left: Float, band: Float) = Brush.horizontalGradient(ribbonColors, startX = left, endX = left + band)
+private fun ribbonBrushHorizontal(top: Float, band: Float) = Brush.verticalGradient(ribbonColors, startY = top, endY = top + band)
 
 private fun DrawScope.drawBow() {
     val w = size.width / 128f
@@ -198,63 +235,95 @@ private fun DrawScope.drawBow() {
     drawOval(Color(0xFFE3A94A), topLeft = p(53f, 38f), size = Size(22f * w, 20f * h))
 }
 
+/** A four-point sparkle centred on [center]. */
+private fun DrawScope.drawSparkle(center: Offset, radius: Float, color: Color, alpha: Float = 1f, rotation: Float = 0f) {
+    if (alpha <= 0f || radius <= 0f) return
+    val pinch = radius * 0.22f
+    val path = Path().apply {
+        moveTo(center.x, center.y - radius)
+        quadraticTo(center.x + pinch, center.y - pinch, center.x + radius, center.y)
+        quadraticTo(center.x + pinch, center.y + pinch, center.x, center.y + radius)
+        quadraticTo(center.x - pinch, center.y + pinch, center.x - radius, center.y)
+        quadraticTo(center.x - pinch, center.y - pinch, center.x, center.y - radius)
+        close()
+    }
+    rotate(rotation, center) { drawPath(path, color, alpha = alpha.coerceIn(0f, 1f)) }
+}
+
+private class Spark(val angle: Double, val distance: Float, val size: Float, val delay: Float, val color: Int)
+
+/** Two waves of sparkles flying out from the bow, with a soft ring of light. */
 @Composable
 private fun SparkleBurst(key: Int, modifier: Modifier = Modifier) {
     val progress = remember(key) { Animatable(0f) }
-    LaunchedEffect(key) { progress.animateTo(1f, tween(900, easing = FastOutSlowInEasing)) }
-    val p = progress.value
-    val colors = listOf(Color(0xFFE3A94A), Color(0xFFE3A94A), AppTheme.colors.accent, AppTheme.colors.accent, Color.White, Color(0xFFF2C46D))
-    Box(modifier) {
-        colors.forEachIndexed { index, color ->
-            val angle = Math.toRadians(-140.0 + index * 52.0)
-            val distance = 120f * p
-            Icon(
-                AppIcons.Sparkle,
-                contentDescription = null,
-                tint = color,
-                modifier = Modifier
-                    .size(14.dp)
-                    .graphicsLayer {
-                        translationX = (cos(angle) * distance).toFloat() * density
-                        translationY = (sin(angle) * distance).toFloat() * density
-                        rotationZ = 90f * p
-                        alpha = if (p < 0.7f) 1f else (1f - (p - 0.7f) / 0.3f)
-                        scaleX = p.coerceAtMost(1f); scaleY = p.coerceAtMost(1f)
-                    },
-            )
+    LaunchedEffect(key) { progress.animateTo(1f, tween(1500, easing = LinearEasing)) }
+    val accent = AppTheme.colors.accent
+    val palette = listOf(Color(0xFFE3A94A), Color(0xFFF9DE9C), accent, Color.White)
+    val sparks = remember {
+        // A wide first wave, then a closer, slower second one.
+        List(9) { i -> Spark(Math.toRadians(-90.0 + i * 40.0 + (i % 2) * 9.0), 150f + (i % 3) * 22f, 9f + (i % 3) * 3f, 0f, i % 4) } +
+            List(7) { i -> Spark(Math.toRadians(-64.0 + i * 51.0), 86f + (i % 2) * 18f, 6f + (i % 2) * 3f, 0.16f, (i + 1) % 4) }
+    }
+    Canvas(modifier.size(1.dp)) {
+        val p = progress.value
+        if (p <= 0f || p >= 1f) return@Canvas
+        // Ring of light.
+        val ring = (p / 0.55f).coerceIn(0f, 1f)
+        val ringEase = 1f - (1f - ring) * (1f - ring)
+        drawCircle(Color(0xFFF9DE9C), radius = (30f + 150f * ringEase).dp.toPx(), center = center, alpha = 0.55f * (1f - ring), style = Stroke(width = (10f * (1f - ring) + 1f).dp.toPx()))
+        sparks.forEach { spark ->
+            val local = ((p - spark.delay) / (1f - spark.delay)).coerceIn(0f, 1f)
+            if (local <= 0f) return@forEach
+            val out = 1f - (1f - local) * (1f - local) * (1f - local)
+            val x = (cos(spark.angle) * spark.distance * out).toFloat().dp.toPx()
+            val y = (sin(spark.angle) * spark.distance * out).toFloat().dp.toPx() + 46.dp.toPx() * local * local
+            val grow = (local / 0.18f).coerceAtMost(1f)
+            val fade = if (local < 0.55f) 1f else 1f - (local - 0.55f) / 0.45f
+            drawSparkle(center + Offset(x, y), spark.size.dp.toPx() * grow * (0.7f + 0.3f * fade), palette[spark.color], fade, rotation = 140f * local)
         }
     }
 }
 
 /**
- * A small gift box that floats and turns in 3D. Used for empty states,
- * onboarding and pull-to-refresh: the "moment" outside of wrapping.
+ * A small gift box that floats, turns in 3D and twinkles. Used for empty states,
+ * onboarding and sign in: the "moment" outside of wrapping.
  */
 @Composable
 fun GiftBoxMoment(modifier: Modifier = Modifier) {
     val reduceMotion = rememberReduceMotion()
     val transition = rememberInfiniteTransition(label = "gift")
-    val turn by transition.animateFloat(-22f, 22f, infiniteRepeatable(tween(3600, easing = FastOutSlowInEasing), RepeatMode.Reverse), label = "turn")
-    val float by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(2400, easing = LinearEasing), RepeatMode.Restart), label = "float")
+    // One looping phase drives everything, so the turn, the float and the twinkles stay in step.
+    val phase by transition.animateFloat(0f, 1f, infiniteRepeatable(tween(5600, easing = LinearEasing), RepeatMode.Restart), label = "phase")
     val accent = AppTheme.colors.accent
     val lid = accent.copy(red = (accent.red * 1.08f).coerceAtMost(1f))
+    val still = reduceMotion
+    val turn = if (still) 0f else sin(2 * Math.PI * phase).toFloat()
+    val float = if (still) 0f else sin(4 * Math.PI * phase).toFloat()
 
     Box(modifier, contentAlignment = Alignment.Center) {
+        // The shadow stays on the ground and tightens as the box rises.
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val spread = 1f - 0.16f * float
+            drawOval(
+                Color.Black.copy(alpha = 0.10f - 0.03f * float),
+                topLeft = Offset(w * (0.5f - 0.28f * spread), h * 0.87f), size = Size(w * 0.56f * spread, h * 0.075f),
+            )
+        }
         Canvas(
             Modifier
                 .fillMaxSize()
                 .graphicsLayer {
-                    if (!reduceMotion) {
-                        rotationY = turn
-                        translationY = (sin(float * 2 * Math.PI) * 4f).toFloat() * density
-                    }
+                    rotationY = turn * 26f
+                    rotationZ = turn * -3f
+                    translationY = -float * 7f * density - 2f * density
+                    scaleY = 1f + 0.018f * float
                     cameraDistance = 10f * density
                 },
         ) {
             val w = size.width
             val h = size.height
-            // shadow
-            drawOval(Color.Black.copy(alpha = 0.08f), topLeft = Offset(w * 0.22f, h * 0.86f), size = Size(w * 0.56f, h * 0.08f))
             // body
             drawRoundRect(accent, topLeft = Offset(w * 0.24f, h * 0.42f), size = Size(w * 0.52f, h * 0.4f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(w * 0.05f))
             // lid
@@ -271,6 +340,17 @@ fun GiftBoxMoment(modifier: Modifier = Modifier) {
                 cubicTo(w * 0.65f, h * 0.33f, w * 0.55f, h * 0.33f, w * 0.5f, h * 0.32f)
             }
             drawPath(bow, Color(0xFFE3A94A))
+        }
+        // Twinkles around the box, each on its own beat.
+        Canvas(Modifier.fillMaxSize()) {
+            val w = size.width
+            val h = size.height
+            val spots = listOf(Triple(0.16f, 0.24f, 0.00f), Triple(0.86f, 0.36f, 0.37f), Triple(0.78f, 0.10f, 0.68f))
+            spots.forEach { (x, y, offset) ->
+                val beat = if (still) 0.5f else ((phase * 2f + offset) % 1f)
+                val glow = sin(Math.PI * beat).toFloat()
+                drawSparkle(Offset(w * x, h * y), w * 0.055f * (0.4f + 0.6f * glow), Color(0xFFE3A94A), alpha = glow, rotation = 45f * beat)
+            }
         }
     }
 }
