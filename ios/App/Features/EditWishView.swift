@@ -415,8 +415,8 @@ struct PhotoScanner: View {
                 let cycle = 3.8
                 let t = reduceMotion ? 0.12 : context.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: cycle) / cycle
                 // The lens drops onto the photo with a spring; the photo dims as it lands.
-                let since = max(context.date.timeIntervalSince(appeared), 0)
-                let arrive = reduceMotion ? 1 : 1 - exp(-6 * since) * cos(9 * since)
+                let since: Double = max(context.date.timeIntervalSince(appeared), 0)
+                let arrive: Double = reduceMotion ? 1 : 1 - exp(-6 * since) * cos(9 * since)
                 GeometryReader { geo in
                     lensScene(size: geo.size, t: t, arrive: arrive)
                 }
@@ -456,9 +456,10 @@ struct PhotoScanner: View {
 
     private func lensScene(size: CGSize, t: Double, arrive: Double) -> some View {
         let center = point(t, in: size)
-        let breathe = reduceMotion ? 0 : sin(2 * Double.pi * t * 3)
-        let r = size.height * 0.29 * arrive * (1 + 0.035 * breathe)
-        let pulse = (t * 4).truncatingRemainder(dividingBy: 1)
+        let breathe: Double = reduceMotion ? 0 : sin(2 * Double.pi * t * 3)
+        let r: CGFloat = size.height * 0.29 * CGFloat(arrive * (1 + 0.035 * breathe))
+        let pulse: Double = (t * 4).truncatingRemainder(dividingBy: 1)
+        let halo: CGFloat = r * 2 * CGFloat(1.08 + 0.42 * pulse)
         let handleStart = CGPoint(x: center.x + r * 0.72, y: center.y + r * 0.72)
         let handleEnd = CGPoint(x: center.x + r * 1.32, y: center.y + r * 1.32)
         return ZStack {
@@ -468,12 +469,14 @@ struct PhotoScanner: View {
                 ForEach(0..<5, id: \.self) { index in sparkle(index, t: t, size: size) }
                 // A soft trail and a pulsing halo, so the lens reads as searching.
                 ForEach(1..<4, id: \.self) { k in
-                    Circle().fill(Color.white.opacity(0.07 / Double(k)))
-                        .frame(width: r * 2 * (1 - 0.06 * Double(k)), height: r * 2 * (1 - 0.06 * Double(k)))
-                        .position(point(t - 0.018 * Double(k), in: size))
+                    let step = Double(k)
+                    let trail: CGFloat = r * 2 * CGFloat(1 - 0.06 * step)
+                    Circle().fill(Color.white.opacity(0.07 / step))
+                        .frame(width: trail, height: trail)
+                        .position(point(t - 0.018 * step, in: size))
                 }
                 Circle().stroke(Color(hex: 0xF9DE9C).opacity(0.45 * (1 - pulse)), lineWidth: r * 0.05)
-                    .frame(width: r * 2 * (1.08 + 0.42 * pulse), height: r * 2 * (1.08 + 0.42 * pulse))
+                    .frame(width: halo, height: halo)
                     .position(center)
             }
             // Soft shadow so the lens floats above the photo.
@@ -505,15 +508,18 @@ struct PhotoScanner: View {
         let spot = Double(index) / 5 + 0.04
         let since = (t - spot + 1).truncatingRemainder(dividingBy: 1)
         if since < 0.22 {
-            let glow = sin(Double.pi * since / 0.22)
+            let glow: Double = sin(Double.pi * since / 0.22)
             let at = point(spot, in: size)
+            let side: CGFloat = index % 2 == 0 ? 1 : -1
+            let x: CGFloat = at.x + size.height * 0.10 * side
+            let y: CGFloat = at.y - size.height * CGFloat(0.10 + 0.10 * since)
             Image(systemName: "sparkle")
                 .font(.system(size: size.height * 0.085, weight: .bold))
                 .foregroundStyle(Color(hex: 0xF9DE9C))
                 .scaleEffect(0.5 + 0.5 * glow)
                 .rotationEffect(.degrees(90 * since))
                 .opacity(glow * 0.95)
-                .position(x: at.x + size.height * 0.10 * (index % 2 == 0 ? 1 : -1), y: at.y - size.height * (0.10 + 0.10 * since))
+                .position(x: x, y: y)
         }
     }
 

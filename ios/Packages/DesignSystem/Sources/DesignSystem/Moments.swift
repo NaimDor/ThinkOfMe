@@ -173,9 +173,24 @@ struct SparkleBurst: View {
     }
 
     // A wide first wave, then a closer, slower second one.
-    private static let sparks: [Spark] =
-        (0..<9).map { i in Spark(angle: (-90 + Double(i) * 40 + Double(i % 2) * 9) * .pi / 180, distance: 150 + Double(i % 3) * 22, size: 9 + Double(i % 3) * 3, delay: 0, color: i % 4) }
-        + (0..<7).map { i in Spark(angle: (-64 + Double(i) * 51) * .pi / 180, distance: 86 + Double(i % 2) * 18, size: 6 + Double(i % 2) * 3, delay: 0.16, color: (i + 1) % 4) }
+    private static let sparks: [Spark] = makeSparks()
+
+    private static func makeSparks() -> [Spark] {
+        var result: [Spark] = []
+        for i in 0..<9 {
+            let degrees: Double = -90.0 + Double(i) * 40.0 + Double(i % 2) * 9.0
+            let distance: Double = 150.0 + Double(i % 3) * 22.0
+            let size: Double = 9.0 + Double(i % 3) * 3.0
+            result.append(Spark(angle: degrees * Double.pi / 180.0, distance: distance, size: size, delay: 0, color: i % 4))
+        }
+        for i in 0..<7 {
+            let degrees: Double = -64.0 + Double(i) * 51.0
+            let distance: Double = 86.0 + Double(i % 2) * 18.0
+            let size: Double = 6.0 + Double(i % 2) * 3.0
+            result.append(Spark(angle: degrees * Double.pi / 180.0, distance: distance, size: size, delay: 0.16, color: (i + 1) % 4))
+        }
+        return result
+    }
 
     var body: some View {
         let palette = [Color(hex: 0xE3A94A), Color(hex: 0xF9DE9C), AppColor.accent, Color.white]
@@ -186,25 +201,28 @@ struct SparkleBurst: View {
                 guard p > 0, p < 1 else { return }
                 let center = CGPoint(x: size.width / 2, y: size.height / 2)
                 // Ring of light.
-                let ring = min(p / 0.55, 1)
-                let ringEase = 1 - (1 - ring) * (1 - ring)
-                let radius = 30 + 150 * ringEase
+                let ring: Double = min(p / 0.55, 1)
+                let ringEase: Double = 1 - (1 - ring) * (1 - ring)
+                let radius = CGFloat(30 + 150 * ringEase)
                 ctx.stroke(
                     Path(ellipseIn: CGRect(x: center.x - radius, y: center.y - radius, width: radius * 2, height: radius * 2)),
                     with: .color(Color(hex: 0xF9DE9C).opacity(0.55 * (1 - ring))),
-                    lineWidth: 10 * (1 - ring) + 1
+                    lineWidth: CGFloat(10 * (1 - ring) + 1)
                 )
                 for spark in sparks {
                     let local = min(max((p - spark.delay) / (1 - spark.delay), 0), 1)
                     guard local > 0 else { continue }
-                    let out = 1 - pow(1 - local, 3)
-                    let x = cos(spark.angle) * spark.distance * out
-                    let y = sin(spark.angle) * spark.distance * out + 46 * local * local
-                    let grow = min(local / 0.18, 1)
-                    let fade = local < 0.55 ? 1 : 1 - (local - 0.55) / 0.45
-                    let transform = CGAffineTransform(translationX: center.x + x, y: center.y + y).rotated(by: 140 * local * .pi / 180)
+                    let out: Double = 1 - pow(1 - local, 3)
+                    let x: Double = cos(spark.angle) * spark.distance * out
+                    let fall: Double = 46 * local * local
+                    let y: Double = sin(spark.angle) * spark.distance * out + fall
+                    let grow: Double = min(local / 0.18, 1)
+                    let fade: Double = local < 0.55 ? 1 : 1 - (local - 0.55) / 0.45
+                    let spin: Double = 140 * local * Double.pi / 180
+                    let moved = CGAffineTransform(translationX: center.x + CGFloat(x), y: center.y + CGFloat(y))
+                    let radius = CGFloat(spark.size * grow * (0.7 + 0.3 * fade))
                     ctx.fill(
-                        sparklePath(radius: spark.size * grow * (0.7 + 0.3 * fade)).applying(transform),
+                        sparklePath(radius: radius).applying(moved.rotated(by: CGFloat(spin))),
                         with: .color(palette[spark.color].opacity(fade))
                     )
                 }
