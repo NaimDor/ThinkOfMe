@@ -38,11 +38,12 @@ language. Release is set to **manual**, so nothing goes live until you press Rel
 | User Content → Photos or Videos | App Functionality | Yes | No |
 | User Content → Other User Content (wishes, notes, dates, circles) | App Functionality | Yes | No |
 | Identifiers → User ID | App Functionality | Yes | No |
-| Identifiers → Device ID (advertising identifier, only if allowed) | Third-Party Advertising | No | **Yes** |
+| Identifiers → Device ID (advertising identifier, only if allowed; app instance ID for analytics) | Third-Party Advertising, Analytics | No | **Yes** |
 | Location → Coarse Location (Google Ads, from IP) | Third-Party Advertising | No | **Yes** |
+| Usage Data → Product Interaction (screens opened, wishes/dates/circles added; see `docs/ANALYTICS.md`) | Analytics | No | No |
 | Usage Data → Advertising Data | Third-Party Advertising | No | **Yes** |
-| Diagnostics → Crash Data | App Functionality | No | No |
-| Diagnostics → Performance Data | App Functionality | No | No |
+| Diagnostics → Crash Data | App Functionality, Analytics | No | No |
+| Diagnostics → Performance Data | App Functionality, Analytics | No | No |
 
 Privacy policy URL: `https://thinkofme.web.app/privacy/` (already filled in by the workflow).
 

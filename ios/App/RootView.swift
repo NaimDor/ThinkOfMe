@@ -32,8 +32,10 @@ struct RootView: View {
                 AppColor.canvas.ignoresSafeArea()
             case .signedOut:
                 SignInView(backend: app.backend, googleSignIn: services.googleSignIn)
+                    .trackScreen("sign_in")
             case .needsProfile:
                 OnboardingView(backend: app.backend) { app.profileSaved() }
+                    .trackScreen("onboarding")
             case .ready:
                 MainTabs(app: app, services: services)
                     .task { await services.registerDevice(app.backend) }
@@ -70,6 +72,7 @@ struct MainTabs: View {
                         createCircle: { tab = .circles },
                         isDemo: backend.isDemo
                     )
+                    .trackScreen("home")
                     .toolbar { addButton }
                     .destinations(backend: backend, path: $homePath, sheet: $sheet, privacyOptions: services.privacyOptions)
                 }
@@ -77,18 +80,21 @@ struct MainTabs: View {
             Tab(L("tab_my_list"), systemImage: "heart", value: .myList) {
                 NavigationStack(path: $listPath) {
                     MyListView(model: MyListModel(backend: backend), openWish: { listPath.append(Route.wish(id: $0.id, ownerId: $0.ownerId)) }, addWish: add)
+                        .trackScreen("my_list")
                         .destinations(backend: backend, path: $listPath, sheet: $sheet, privacyOptions: services.privacyOptions)
                 }
             }
             Tab(L("tab_circles"), systemImage: "person.2", value: .circles) {
                 NavigationStack(path: $circlesPath) {
                     CirclesView(model: CirclesModel(backend: backend), openPerson: { circlesPath.append(Route.person($0)) }, join: { sheet = .join(code: $0) })
+                        .trackScreen("circles")
                         .destinations(backend: backend, path: $circlesPath, sheet: $sheet, privacyOptions: services.privacyOptions)
                 }
             }
             Tab(L("tab_dates"), systemImage: "calendar", value: .dates) {
                 NavigationStack(path: $datesPath) {
                     OccasionsView(model: OccasionsModel(backend: backend), openPerson: { datesPath.append(Route.person($0)) })
+                        .trackScreen("dates")
                         .destinations(backend: backend, path: $datesPath, sheet: $sheet, privacyOptions: services.privacyOptions)
                 }
             }
@@ -98,8 +104,10 @@ struct MainTabs: View {
             switch route {
             case .editWish(let id, let url):
                 EditWishView(model: EditWishModel(backend: backend, wishId: id, sharedURL: url))
+                    .trackScreen(id == nil ? "add_wish" : "edit_wish")
             case .join(let code):
                 JoinView(model: JoinModel(backend: backend, code: code))
+                    .trackScreen("join")
             }
         }
         .onChange(of: app.incoming, initial: true) { _, link in
@@ -157,12 +165,15 @@ private extension View {
                     openWish: { path.wrappedValue.append(Route.wish(id: $0.id, ownerId: $0.ownerId)) },
                     addWish: { sheet.wrappedValue = .editWish(id: nil, sharedURL: nil) }
                 )
+                .trackScreen("person")
             case .wish(let id, let ownerId):
                 WishDetailView(model: WishModel(backend: backend, wishId: id, ownerId: ownerId)) { wish in
                     sheet.wrappedValue = .editWish(id: wish.id, sharedURL: nil)
                 }
+                .trackScreen("wish")
             case .settings:
                 SettingsView(backend: backend, privacyOptions: privacyOptions)
+                    .trackScreen("settings")
             }
         }
     }

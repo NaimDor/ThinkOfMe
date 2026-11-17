@@ -5,7 +5,10 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
+import androidx.navigation.NavBackStackEntry
 import androidx.navigation.NavDestination
+import androidx.navigation.toRoute
+import com.thinkofme.core.data.Telemetry
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.remember
@@ -113,6 +116,14 @@ fun ThinkOfMeApp(
     val vm: AppViewModel = hiltViewModel()
     val gate by vm.gate.collectAsStateWithLifecycle()
 
+    LaunchedEffect(gate) {
+        when (gate) {
+            AppGate.SignedOut -> Telemetry.screen("sign_in")
+            AppGate.NeedsProfile -> Telemetry.screen("onboarding")
+            else -> Unit
+        }
+    }
+
     Crossfade(gate, label = "gate", modifier = Modifier.background(AppTheme.colors.canvas)) { current ->
         when (current) {
             AppGate.Loading -> Box(Modifier.fillMaxSize().background(AppTheme.colors.canvas))
@@ -147,6 +158,7 @@ private fun MainNavigation(incoming: Flow<IncomingIntent>, onIncomingHandled: ()
     val entry by nav.currentBackStackEntryAsState()
     val destination = entry?.destination
     val currentTab = Tab.entries.firstOrNull { tab -> destination?.hasRoute(tab.route::class) == true }
+    LaunchedEffect(entry?.id) { entry?.let { Telemetry.screen(screenName(it)) } }
 
     LaunchedEffect(Unit) {
         incoming.collect { intent ->
@@ -211,6 +223,23 @@ private fun MainNavigation(incoming: Flow<IncomingIntent>, onIncomingHandled: ()
         ) {
             BottomBar(current = currentTab, onSelect = { nav.switchTab(it) }, onAdd = { nav.navigate(EditWishRoute()) })
         }
+    }
+}
+
+/** Screen names shared with iOS (docs/ANALYTICS.md). */
+private fun screenName(entry: NavBackStackEntry): String {
+    val d = entry.destination
+    return when {
+        d.hasRoute(HomeRoute::class) -> "home"
+        d.hasRoute(MyListRoute::class) -> "my_list"
+        d.hasRoute(CirclesRoute::class) -> "circles"
+        d.hasRoute(OccasionsRoute::class) -> "dates"
+        d.hasRoute(PersonRoute::class) -> "person"
+        d.hasRoute(WishRoute::class) -> "wish"
+        d.hasRoute(EditWishRoute::class) -> if (entry.toRoute<EditWishRoute>().wishId == null) "add_wish" else "edit_wish"
+        d.hasRoute(JoinRoute::class) -> "join"
+        d.hasRoute(SettingsRoute::class) -> "settings"
+        else -> "other"
     }
 }
 

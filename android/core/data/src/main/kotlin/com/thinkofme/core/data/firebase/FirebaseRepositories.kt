@@ -24,6 +24,7 @@ import com.thinkofme.core.data.LinkPreview
 import com.thinkofme.core.data.PhotoDetails
 import com.thinkofme.core.data.OccasionRepository
 import com.thinkofme.core.data.ProfileRepository
+import com.thinkofme.core.data.Telemetry
 import com.thinkofme.core.data.WishRepository
 import com.thinkofme.core.model.AboutMe
 import com.thinkofme.core.model.Circle
@@ -184,7 +185,9 @@ class FirebaseAuthRepository @Inject constructor(firebaseSession: FirebaseSessio
     override val isDemo = false
 
     override suspend fun signInWithGoogleIdToken(idToken: String) {
-        Firebase.auth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).await()
+        val result = Firebase.auth.signInWithCredential(GoogleAuthProvider.getCredential(idToken, null)).await()
+        val isNew = result.additionalUserInfo?.isNewUser == true
+        Telemetry.event(if (isNew) "sign_up" else "login", "method" to "google")
     }
 
     override suspend fun signInWithDemoData() = error("Demo data is only available in demo builds.")
@@ -193,6 +196,7 @@ class FirebaseAuthRepository @Inject constructor(firebaseSession: FirebaseSessio
 
     override suspend fun deleteAccount() {
         functions().getHttpsCallable("deleteAccount").call().await()
+        Telemetry.event("account_delete")
         Firebase.auth.signOut()
     }
 }
@@ -233,6 +237,7 @@ class FirebaseProfileRepository @Inject constructor(private val session: Firebas
         } else {
             ref.update(data).await()
         }
+        Telemetry.event("profile_save", "first" to !exists)
     }
 
     override fun holidayChoices(): Flow<Set<String>?> = session.whenSignedIn(null) { uid ->
@@ -254,6 +259,7 @@ class FirebaseProfileRepository @Inject constructor(private val session: Firebas
         val uid = session.requireUid()
         users.document(uid).collection("private").document("settings")
             .set(mapOf("notifications" to mapOf("reminders" to enabled)), SetOptions.merge()).await()
+        Telemetry.event("reminders_set", "enabled" to enabled)
     }
 
     override suspend fun saveDeviceSettings(timeZone: String, locale: String, pushToken: String?) {
@@ -284,6 +290,7 @@ class FirebaseCircleRepository @Inject constructor(private val session: Firebase
                 "createdAt" to FieldValue.serverTimestamp(), "updatedAt" to FieldValue.serverTimestamp(),
             ),
         ).await()
+        Telemetry.event("circle_create", "kind" to kind.name.lowercase())
         return ref.id
     }
 
@@ -297,6 +304,7 @@ class FirebaseCircleRepository @Inject constructor(private val session: Firebase
 
     override suspend fun createInvite(circleId: String): Invite {
         val result = call("createInvite", mapOf("circleId" to circleId))
+        Telemetry.event("invite_create")
         return Invite(result["code"] as String, result["url"] as String, (result["expiresAt"] as Number).toLong())
     }
 
@@ -310,7 +318,8 @@ class FirebaseCircleRepository @Inject constructor(private val session: Firebase
         )
     }
 
-    override suspend fun joinWithInvite(code: String): String = call("redeemInvite", mapOf("code" to code))["circleId"] as String
+    override suspend fun joinWithInvite(code: String): String =
+        (call("redeemInvite", mapOf("code" to code))["circleId"] as String).also { Telemetry.event("invite_accept") }
 
     override suspend fun removeMember(circleId: String, userId: String) {
         call("removeMember", mapOf("circleId" to circleId, "userId" to userId))
@@ -318,6 +327,7 @@ class FirebaseCircleRepository @Inject constructor(private val session: Firebase
 
     override suspend fun leave(circleId: String) {
         call("leaveCircle", mapOf("circleId" to circleId))
+        Telemetry.event("circle_leave")
     }
 }
 
@@ -351,7 +361,7 @@ class FirebaseWishRepository @Inject constructor(private val session: FirebaseSe
         val uid = session.requireUid()
         val ref = Firebase.storage.reference.child("users/$uid/wishes/$wishId/${java.util.UUID.randomUUID()}.jpg")
         ref.putBytes(jpeg, com.google.firebase.storage.StorageMetadata.Builder().setContentType("image/jpeg").build()).await()
-        return ref.downloadUrl.await().toString()
+        return ref.downloadUrl.await().toString().also { Telemetry.event("photo_add") }
     }
 
     override suspend fun save(wishId: String, isNew: Boolean, draft: WishDraft): String {
@@ -382,22 +392,37 @@ class FirebaseWishRepository @Inject constructor(private val session: FirebaseSe
             fields.remove("status")
             ref.update(fields).await()
         }
+        Telemetry.event(
+            if (isNew) "wish_add" else "wish_edit",
+            "kind" to if (draft.kind == WishKind.IDEA) "idea" else "product",
+            "priority" to draft.priority.name.lowercase(),
+            "has_link" to draft.url.isNotBlank(),
+            "has_photo" to draft.imageUrls.isNotEmpty(),
+            "has_price" to (price != null),
+            "has_note" to draft.note.isNotBlank(),
+            "shared" to draft.visibleCircleIds.isNotEmpty(),
+        )
         return ref.id
     }
 
     override suspend fun markReceived(wishId: String) {
         wishes.document(wishId).update(mapOf("status" to "received", "updatedAt" to FieldValue.serverTimestamp())).await()
+        Telemetry.event("wish_received")
     }
 
     override suspend fun delete(wishId: String) {
         wishes.document(wishId).delete().await()
+        Telemetry.event("wish_delete")
     }
 
     @Suppress("UNCHECKED_CAST")
     override suspend fun analyzePhoto(jpeg: ByteArray, locale: String): PhotoDetails {
         val image = android.util.Base64.encodeToString(jpeg, android.util.Base64.NO_WRAP)
-        val data = functions().getHttpsCallable("analyzePhoto").call(mapOf("image" to image, "locale" to locale)).await()
-            .getData() as? Map<*, *> ?: emptyMap<String, Any?>()
+        val data = runCatching {
+            functions().getHttpsCallable("analyzePhoto").call(mapOf("image" to image, "locale" to locale)).await()
+                .getData() as? Map<*, *> ?: emptyMap<String, Any?>()
+        }.onFailure { Telemetry.event("photo_read", "success" to false) }.getOrThrow()
+        Telemetry.event("photo_read", "success" to true, "is_product" to (data["isProduct"] == true), "has_price" to (data["priceAmount"] is Number))
         fun text(key: String) = (data[key] as? String)?.takeIf { it.isNotBlank() }
         return PhotoDetails(
             isProduct = data["isProduct"] as? Boolean ?: false,
@@ -415,8 +440,11 @@ class FirebaseWishRepository @Inject constructor(private val session: FirebaseSe
 
     override suspend fun unfurl(url: String, wishId: String?): LinkPreview {
         val args = mapOf("url" to url, "wishId" to wishId, "locale" to java.util.Locale.getDefault().toLanguageTag())
-        val data = functions().getHttpsCallable("unfurlLink").call(args).await().getData() as? Map<String, Any?> ?: emptyMap()
+        val data = runCatching {
+            functions().getHttpsCallable("unfurlLink").call(args).await().getData() as? Map<String, Any?> ?: emptyMap()
+        }.onFailure { Telemetry.event("link_read", "success" to false) }.getOrThrow()
         val price = data["price"] as? Map<String, Any?>
+        Telemetry.event("link_read", "success" to true, "has_title" to (data["title"] != null), "has_price" to (price != null))
         return LinkPreview(
             url = data["url"] as? String ?: url,
             title = data["title"] as? String,
@@ -459,15 +487,18 @@ class FirebaseClaimRepository @Inject constructor(private val session: FirebaseS
                 "createdAt" to FieldValue.serverTimestamp(), "updatedAt" to FieldValue.serverTimestamp(),
             ),
         ).await()
+        Telemetry.event("gift_claim")
     }
 
     override suspend fun setPurchased(wishId: String, purchased: Boolean) {
         claims.document("${wishId}_${session.requireUid()}")
             .update(mapOf("status" to if (purchased) "purchased" else "reserved", "updatedAt" to FieldValue.serverTimestamp())).await()
+        Telemetry.event("gift_bought", "bought" to purchased)
     }
 
     override suspend fun release(wishId: String) {
         claims.document("${wishId}_${session.requireUid()}").delete().await()
+        Telemetry.event("gift_unclaim")
     }
 }
 
@@ -501,10 +532,12 @@ class FirebaseOccasionRepository @Inject constructor(private val session: Fireba
         } else {
             ref.update(data).await()
         }
+        Telemetry.event(if (occasion.id.isEmpty()) "date_add" else "date_edit", "kind" to occasion.kind.name.lowercase())
         return ref.id
     }
 
     override suspend fun delete(occasionId: String) {
         occasions.document(occasionId).delete().await()
+        Telemetry.event("date_delete")
     }
 }

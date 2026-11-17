@@ -70,12 +70,14 @@ final class FirebaseBackend: Backend {
     }
 
     func signInWithGoogle(idToken: String, accessToken: String) async throws {
-        _ = try await Auth.auth().signIn(with: GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken))
+        let result = try await Auth.auth().signIn(with: GoogleAuthProvider.credential(withIDToken: idToken, accessToken: accessToken))
+        Telemetry.event(result.additionalUserInfo?.isNewUser == true ? "sign_up" : "login", ["method": "google"])
     }
 
     func signInWithApple(idToken: String, rawNonce: String, fullName: PersonNameComponents?) async throws {
         let credential = OAuthProvider.appleCredential(withIDToken: idToken, rawNonce: rawNonce, fullName: fullName)
         let result = try await Auth.auth().signIn(with: credential)
+        Telemetry.event(result.additionalUserInfo?.isNewUser == true ? "sign_up" : "login", ["method": "apple"])
         // Apple only shares the name on first sign-in; keep it for onboarding.
         if let fullName, result.user.displayName == nil {
             let change = result.user.createProfileChangeRequest()
@@ -90,6 +92,7 @@ final class FirebaseBackend: Backend {
 
     func deleteAccount() async throws {
         _ = try await functions.httpsCallable("deleteAccount").call()
+        Telemetry.event("account_delete")
         try? Auth.auth().signOut()
     }
 
@@ -212,13 +215,15 @@ final class FirebaseBackend: Backend {
         ].compactMapValues { value in value.flatMap { $0.isEmpty ? nil : $0 } }
         let ref = db.collection("users").document(uid)
         var data: [String: Any] = ["displayName": displayName, "aboutMe": about, "updatedAt": FieldValue.serverTimestamp()]
-        if try await ref.getDocument().exists {
+        let exists = try await ref.getDocument().exists
+        if exists {
             try await ref.updateData(data)
         } else {
             data["createdAt"] = FieldValue.serverTimestamp()
             data["hue"] = PersonHue.index(for: uid)
             try await ref.setData(data)
         }
+        Telemetry.event("profile_save", ["first": !exists])
     }
 
     func holidayChoices() -> AsyncStream<Set<String>?> {
@@ -245,6 +250,7 @@ final class FirebaseBackend: Backend {
         let uid = try requireUid()
         try await db.collection("users").document(uid).collection("private").document("settings")
             .setData(["notifications": ["reminders": enabled]], merge: true)
+        Telemetry.event("reminders_set", ["enabled": enabled])
     }
 
     func saveDevice(timeZone: String, locale: String, pushToken: String?) async throws {
@@ -273,6 +279,7 @@ final class FirebaseBackend: Backend {
             "name": name, "kind": kind.rawValue, "ownerId": uid, "memberIds": [uid], "adminIds": [uid],
             "createdAt": FieldValue.serverTimestamp(), "updatedAt": FieldValue.serverTimestamp(),
         ])
+        Telemetry.event("circle_create", ["kind": kind.rawValue])
         return ref.documentID
     }
 
@@ -283,6 +290,7 @@ final class FirebaseBackend: Backend {
 
     func createInvite(circleId: String) async throws -> Invite {
         let result = try await call("createInvite", ["circleId": circleId])
+        Telemetry.event("invite_create")
         guard let code = result["code"] as? String, let url = (result["url"] as? String).flatMap(URL.init(string:)) else {
             throw BackendError.badResponse
         }
@@ -302,11 +310,13 @@ final class FirebaseBackend: Backend {
 
     func joinWithInvite(code: String) async throws -> String {
         guard let id = try await call("redeemInvite", ["code": code])["circleId"] as? String else { throw BackendError.badResponse }
+        Telemetry.event("invite_accept")
         return id
     }
 
     func leaveCircle(_ circleId: String) async throws {
         _ = try await call("leaveCircle", ["circleId": circleId])
+        Telemetry.event("circle_leave")
     }
 
     func renameCircle(_ circleId: String, name: String) async throws {
@@ -354,7 +364,9 @@ final class FirebaseBackend: Backend {
         let metadata = StorageMetadata()
         metadata.contentType = "image/jpeg"
         _ = try await ref.putDataAsync(jpeg, metadata: metadata)
-        return try await ref.downloadURL()
+        let url = try await ref.downloadURL()
+        Telemetry.event("photo_add")
+        return url
     }
 
     func saveWish(id: String, isNew: Bool, draft: WishDraft) async throws -> String {
@@ -383,19 +395,37 @@ final class FirebaseBackend: Backend {
         } else {
             try await ref.updateData(data)
         }
+        Telemetry.event(isNew ? "wish_add" : "wish_edit", [
+            "kind": draft.kind.rawValue,
+            "priority": "\(draft.priority)",
+            "has_link": !draft.url.isEmpty,
+            "has_photo": !draft.imageURLs.isEmpty,
+            "has_price": draft.price != nil,
+            "has_note": !draft.note.isEmpty,
+            "shared": !draft.visibleCircleIds.isEmpty,
+        ])
         return ref.documentID
     }
 
     func markReceived(_ wishId: String) async throws {
         try await db.collection("wishes").document(wishId).updateData(["status": "received", "updatedAt": FieldValue.serverTimestamp()])
+        Telemetry.event("wish_received")
     }
 
     func deleteWish(_ wishId: String) async throws {
         try await db.collection("wishes").document(wishId).delete()
+        Telemetry.event("wish_delete")
     }
 
     func analyzePhoto(_ jpeg: Data, locale: String) async throws -> PhotoDetails {
-        let data = try await call("analyzePhoto", ["image": jpeg.base64EncodedString(), "locale": locale])
+        let data: [String: Any]
+        do {
+            data = try await call("analyzePhoto", ["image": jpeg.base64EncodedString(), "locale": locale])
+        } catch {
+            Telemetry.event("photo_read", ["success": false])
+            throw error
+        }
+        Telemetry.event("photo_read", ["success": true, "is_product": data["isProduct"] as? Bool ?? false, "has_price": data["priceAmount"] is NSNumber])
         func text(_ key: String) -> String? { (data[key] as? String).flatMap { $0.isEmpty ? nil : $0 } }
         let price: Money? = {
             guard let amount = (data["priceAmount"] as? NSNumber)?.doubleValue, let currency = text("priceCurrency") else { return nil }
@@ -411,8 +441,15 @@ final class FirebaseBackend: Backend {
     func unfurl(_ url: URL, wishId: String?) async throws -> LinkPreview {
         var args: [String: Any] = ["url": url.absoluteString, "locale": Locale.current.identifier]
         if let wishId { args["wishId"] = wishId }
-        let data = try await call("unfurlLink", args)
+        let data: [String: Any]
+        do {
+            data = try await call("unfurlLink", args)
+        } catch {
+            Telemetry.event("link_read", ["success": false])
+            throw error
+        }
         let price = data["price"] as? [String: Any]
+        Telemetry.event("link_read", ["success": true, "has_title": data["title"] is String, "has_price": price != nil])
         return LinkPreview(
             url: (data["url"] as? String).flatMap(URL.init(string:)) ?? url,
             title: data["title"] as? String,
@@ -452,11 +489,13 @@ final class FirebaseBackend: Backend {
             "viewerIds": viewers, "status": "reserved", "quantity": 1,
             "createdAt": FieldValue.serverTimestamp(), "updatedAt": FieldValue.serverTimestamp(),
         ])
+        Telemetry.event("gift_claim")
     }
 
     func release(_ wishId: String) async throws {
         let uid = try requireUid()
         try await db.collection("claims").document("\(wishId)_\(uid)").delete()
+        Telemetry.event("gift_unclaim")
     }
 
     func setPurchased(_ wishId: String, purchased: Bool) async throws {
@@ -465,6 +504,7 @@ final class FirebaseBackend: Backend {
             "status": purchased ? ClaimStatus.purchased.rawValue : ClaimStatus.reserved.rawValue,
             "updatedAt": FieldValue.serverTimestamp(),
         ])
+        Telemetry.event("gift_bought", ["bought": purchased])
     }
 
     // MARK: Occasions
@@ -509,10 +549,12 @@ final class FirebaseBackend: Backend {
         } else {
             try await ref.updateData(data)
         }
+        Telemetry.event(occasion.id.isEmpty ? "date_add" : "date_edit", ["kind": occasion.kind.rawValue])
         return ref.documentID
     }
 
     func deleteOccasion(_ id: String) async throws {
         try await db.collection("occasions").document(id).delete()
+        Telemetry.event("date_delete")
     }
 }

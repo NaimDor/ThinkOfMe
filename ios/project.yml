@@ -60,6 +60,9 @@ targets:
         product: FirebaseAppCheck
       - package: Firebase
         product: FirebaseCrashlytics
+      # Analytics without the advertising identifier (IDFA): usage counts only.
+      - package: Firebase
+        product: FirebaseAnalyticsCore
       - package: GoogleMobileAds
       - package: GoogleUserMessagingPlatform
       - package: GoogleSignIn
@@ -82,6 +85,12 @@ targets:
         TOMBannerAdUnitID: $(TOM_BANNER_AD_UNIT_ID)
         TOMLinkHost: $(LINK_HOST)
         NSUserTrackingUsageDescription: Lets us show ads that are more relevant to you. ThinkOfMe works the same either way.
+        # Analytics: screens are logged by hand (SwiftUI names), nothing is shared with ads.
+        FirebaseAutomaticScreenReportingEnabled: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_STORAGE: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_USER_DATA: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_AD_PERSONALIZATION_SIGNALS: false
+        GOOGLE_ANALYTICS_DEFAULT_ALLOW_ANALYTICS_STORAGE: true
         SKAdNetworkItems:
           - SKAdNetworkIdentifier: cstr6suwn9.skadnetwork
         CFBundleURLTypes:
