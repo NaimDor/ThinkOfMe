@@ -55,7 +55,7 @@ data class AdsConfig(
     val nativeUnitId: String = "",
     val bannerUnitId: String = "",
     /** First native ad after this many items, then every [nativeEvery] items. */
-    val nativeFirstAfter: Int = 6,
+    val nativeFirstAfter: Int = 3,
     val nativeEvery: Int = 10,
 )
 

@@ -38,6 +38,20 @@ Analytics → Enable**.
 Messaging), plus device model, OS, app version, language and country (from IP; the IP itself is not
 stored).
 
+## User properties (for slicing every report)
+
+Set from the live lists, as buckets `0`, `1`, `2`, `3-5`, `6-10`, `11+`:
+
+| Property | Meaning |
+|---|---|
+| `people_count` | People you share a circle with (not counting yourself) |
+| `wishes_count` | Your own open wishes |
+
+Register them once so they show up in reports: Firebase console → Analytics → **Custom
+definitions → Create custom dimension**, scope **User**, for each property name above. Then any
+report can be split by them, e.g. "how many users have 2+ people", or retention by
+`people_count`. Only data from after registering appears.
+
 ## Screens (`screen_view`, parameter `screen_name`)
 
 | Name | Screen |

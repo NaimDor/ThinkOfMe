@@ -134,9 +134,10 @@ interstitial, rewarded or app-open ads, ever**.
 
 | Screen | Ad | Frequency |
 |---|---|---|
-| Home feed ("New from your people") | Native card | 1 after the 6th item, then every 10 items |
+| Home feed ("New from your people") | Native card | 1 after the 3rd item, then every 10 items |
 | A person's wishlist grid | Native tile | 1 per 12 wishes, never in the first row |
-| Occasions timeline | Inline banner | 1, at the end of the list |
+| Occasions timeline | Inline banner | 1, at the end of the list, only with 3+ dates |
+| My list | Inline banner | 1, at the end of the list, only with 4+ wishes |
 | Circles list | Inline banner | 1, at the end of the list, only with 4+ Circles |
 
 **Never**: onboarding, add/edit wish, wish detail, the "wrap it"

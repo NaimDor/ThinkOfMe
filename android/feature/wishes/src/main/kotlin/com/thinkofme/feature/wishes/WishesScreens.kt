@@ -329,6 +329,6 @@ fun MyListScreen(state: MyListUiState, onOpenWish: (String, String) -> Unit, onA
         }
         // Your own list never shows whether anything was claimed.
         items(state.wishes, key = { it.id }) { wish -> WishCard(wish, onClick = { onOpenWish(wish.id, wish.ownerId) }) }
-        if (state.wishes.size >= 8) item(span = { GridItemSpan(maxLineSpan) }) { InlineBanner(Modifier.padding(top = AppSpace.s)) }
+        if (state.wishes.size >= 4) item(span = { GridItemSpan(maxLineSpan) }) { InlineBanner(Modifier.padding(top = AppSpace.s)) }
     }
 }

@@ -13,6 +13,22 @@ enum Telemetry {
         Analytics.logEvent(name, parameters: values.isEmpty ? nil : values)
     }
 
+    /// A per-user attribute for slicing reports, e.g. how many people someone has.
+    /// Counts go in buckets ("0", "1", "2", "3-5", "6-10", "11+"), never exact lists.
+    static func count(_ name: String, _ value: Int) {
+        guard FirebaseApp.app() != nil else { return }
+        Analytics.setUserProperty(bucket(value), forName: name)
+    }
+
+    static func bucket(_ n: Int) -> String {
+        switch n {
+        case ..<3: "\(max(n, 0))"
+        case 3...5: "3-5"
+        case 6...10: "6-10"
+        default: "11+"
+        }
+    }
+
     static func screen(_ name: String) {
         event(AnalyticsEventScreenView, [AnalyticsParameterScreenName: name, AnalyticsParameterScreenClass: name])
     }

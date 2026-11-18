@@ -196,7 +196,7 @@ fun OccasionsScreen(state: OccasionsUiState, onOpenPerson: (String) -> Unit, onS
                 if (index < state.holidays.lastIndex) Hairline()
             }
         }
-        if (state.upcoming.size >= 6) item { InlineBanner(Modifier.padding(top = AppSpace.l)) }
+        if (state.upcoming.size >= 3) item { InlineBanner(Modifier.padding(top = AppSpace.l)) }
     }
 
     if (adding) {

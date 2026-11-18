@@ -217,6 +217,7 @@ class FirebaseProfileRepository @Inject constructor(private val session: Firebas
                 val chunks = ids.distinct().chunked(30)
                 combine(chunks.map { chunk -> users.whereIn(FieldPath.documentId(), chunk).liveList() }) { lists ->
                     lists.flatMap { it.toList() }.associate { it.id to it.toPerson() }
+                        .also { people -> Telemetry.count("people_count", people.keys.count { it != uid }) }
                 }
             }
     }
@@ -335,7 +336,9 @@ class FirebaseWishRepository @Inject constructor(private val session: FirebaseSe
     private val wishes get() = firestore().collection("wishes")
 
     override fun myWishes(): Flow<List<Wish>> = session.whenSignedIn(emptyList()) { uid ->
-        wishes.whereEqualTo("ownerId", uid).orderBy("sortKey", Query.Direction.DESCENDING).liveList().map { docs -> docs.map { it.toWish() } }
+        wishes.whereEqualTo("ownerId", uid).orderBy("sortKey", Query.Direction.DESCENDING).liveList().map { docs ->
+            docs.map { it.toWish() }.also { list -> Telemetry.count("wishes_count", list.count { it.status == WishStatus.ACTIVE }) }
+        }
     }
 
     override fun visibleWishes(): Flow<List<Wish>> = session.whenSignedIn(emptyList()) { uid ->

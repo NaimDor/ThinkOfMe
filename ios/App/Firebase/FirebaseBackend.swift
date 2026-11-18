@@ -195,7 +195,9 @@ final class FirebaseBackend: Backend {
                 let listener = db.collection("users").whereField(FieldPath.documentID(), in: chunk).addSnapshotListener { snap, _ in
                     guard let snap else { return }
                     results[index] = Dictionary(uniqueKeysWithValues: snap.documents.map { ($0.documentID, Self.person($0)) })
-                    continuation.yield(results.values.reduce(into: [:]) { $0.merge($1) { a, _ in a } })
+                    let people: [String: Person] = results.values.reduce(into: [:]) { $0.merge($1) { a, _ in a } }
+                    Telemetry.count("people_count", people.keys.filter { $0 != uid }.count)
+                    continuation.yield(people)
                 }
                 profileListeners.append(listener)
             }
@@ -333,7 +335,11 @@ final class FirebaseBackend: Backend {
 
     func myWishes() -> AsyncStream<[Wish]> {
         guard let uid else { return empty([]) }
-        return listen(db.collection("wishes").whereField("ownerId", isEqualTo: uid).order(by: "sortKey", descending: true)) { $0.map(Self.wish) }
+        return listen(db.collection("wishes").whereField("ownerId", isEqualTo: uid).order(by: "sortKey", descending: true)) { docs in
+            let wishes = docs.map(Self.wish)
+            Telemetry.count("wishes_count", wishes.filter { $0.status == .active }.count)
+            return wishes
+        }
     }
 
     func visibleWishes() -> AsyncStream<[Wish]> {

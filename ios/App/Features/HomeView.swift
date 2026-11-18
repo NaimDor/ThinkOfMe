@@ -84,7 +84,7 @@ struct HomeView: View {
                             .buttonStyle(.plain)
                             .riseIn(index + 1)
                         if index < overview.people.count - 1 { Hairline() }
-                        if index == 5 { NativeAdCard().padding(.vertical, Space.xs) }
+                        if index == 2 { NativeAdCard().padding(.vertical, Space.xs) }
                     }
                 }
             }

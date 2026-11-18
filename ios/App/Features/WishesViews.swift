@@ -296,7 +296,7 @@ struct MyListView: View {
                         Button { openWish(wish) } label: { WishCard(wish: wish) }.buttonStyle(PressableStyle())
                     }
                 }
-                if model.wishes.count >= 8 { InlineBanner() }
+                if model.wishes.count >= 4 { InlineBanner() }
             }
             .padding(.horizontal, Space.l)
             .padding(.bottom, Space.xxl)

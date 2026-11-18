@@ -28,5 +28,21 @@ object Telemetry {
         runCatching { Firebase.analytics.logEvent(name, bundle) }
     }
 
+    /**
+     * A per-user attribute for slicing reports, e.g. how many people someone has.
+     * Counts go in buckets ("0", "1", "2", "3-5", "6-10", "11+"), never exact lists.
+     */
+    fun count(name: String, value: Int) {
+        if (runCatching { FirebaseApp.getInstance() }.isFailure) return
+        runCatching { Firebase.analytics.setUserProperty(name, bucket(value)) }
+    }
+
+    fun bucket(n: Int): String = when {
+        n < 3 -> n.coerceAtLeast(0).toString()
+        n <= 5 -> "3-5"
+        n <= 10 -> "6-10"
+        else -> "11+"
+    }
+
     fun screen(name: String) = event(FirebaseAnalytics.Event.SCREEN_VIEW, FirebaseAnalytics.Param.SCREEN_NAME to name, FirebaseAnalytics.Param.SCREEN_CLASS to name)
 }

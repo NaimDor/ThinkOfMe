@@ -97,7 +97,7 @@ struct OccasionsView: View {
                     Text(L("settings_holidays")).textStyle(.title).foregroundStyle(AppColor.ink).textCase(nil)
                 }
             }
-            if model.upcoming.count >= 6 {
+            if model.upcoming.count >= 3 {
                 InlineBanner().listRowBackground(Color.clear).listRowSeparator(.hidden)
             }
         }
