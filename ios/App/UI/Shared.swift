@@ -102,18 +102,24 @@ struct WishImage: View {
     var symbolSize: CGFloat = 40
 
     var body: some View {
-        ZStack {
-            AppColor.surfaceMuted
-            Image(systemName: wish.kind == .idea ? "sparkle" : "gift")
-                .font(.system(size: symbolSize, weight: .light))
-                .foregroundStyle(AppColor.inkMuted.opacity(0.6))
-            if let url = wish.imageURLs.first {
-                AsyncImage(url: url) { phase in
-                    if let image = phase.image { image.resizable().scaledToFill() }
+        // The tile takes exactly the size it is given; the photo fills it as an overlay and is
+        // cropped to it. (Inside a ZStack a tall or wide photo would size the stack itself and
+        // spill over the content around it.)
+        AppColor.surfaceMuted
+            .overlay {
+                Image(systemName: wish.kind == .idea ? "sparkle" : "gift")
+                    .font(.system(size: symbolSize, weight: .light))
+                    .foregroundStyle(AppColor.inkMuted.opacity(0.6))
+            }
+            .overlay {
+                if let url = wish.imageURLs.first {
+                    AsyncImage(url: url) { phase in
+                        if let image = phase.image { image.resizable().scaledToFill() }
+                    }
                 }
             }
-        }
-        .clipShape(RoundedRectangle(cornerRadius: Radius.l, style: .continuous))
+            .clipShape(RoundedRectangle(cornerRadius: Radius.l, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: Radius.l, style: .continuous))
     }
 }
 
