@@ -2,7 +2,8 @@ name: App Store listing
 
 # Captures the store screenshots from the iOS app (demo data, every language), frames them,
 # and pushes them with the listing text in store/app-store to App Store Connect.
-# It never submits for review. Download "app-store-screenshots" to look at the images.
+# Also draws the product page header and search results art and places it on the version.
+# It never submits for review. Download "app-store-screenshots" / "app-store-creative-assets" to look at the images.
 on:
   workflow_dispatch:
     inputs:
@@ -17,6 +18,10 @@ on:
       build:
         description: Build number to attach (empty = newest processed build of this version)
         default: ""
+      creative:
+        description: Draw and place the header and search results art (store/app-store/creative)
+        type: boolean
+        default: true
 
 permissions:
   contents: read
@@ -115,3 +120,37 @@ jobs:
         run: |
           pip install --quiet "pyjwt[crypto]==2.10.1" "requests==2.32.5"
           python3 scripts/app_store_listing.py app-store-screenshots
+
+  creative:
+    # After the listing job, so the version and its languages exist.
+    needs: upload
+    if: ${{ always() && inputs.creative && (needs.upload.result == 'success' || needs.upload.result == 'skipped') }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install renderer
+        run: |
+          npm install --no-save --prefix "$RUNNER_TEMP/pw" playwright@1.63.0
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+          pip install --quiet "pillow==12.0.0" "pyjwt[crypto]==2.10.1" "requests==2.32.5"
+      - name: Render header and search results art
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: node store/app-store/creative/render.js
+      - uses: actions/upload-artifact@v5
+        with:
+          name: app-store-creative-assets
+          path: store/app-store/creative/out/*.png
+      - name: Upload and place in App Store Connect
+        if: ${{ inputs.upload }}
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          BUNDLE_ID: com.thinkofme.app
+          VERSION: "1.0"
+        run: python3 scripts/app_store_creative.py store/app-store/creative/out
