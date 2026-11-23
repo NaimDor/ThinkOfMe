@@ -16,7 +16,7 @@ Status legend: **[me]** = code/config I do, **[you]** = needs your accounts, dec
 | A3 | ~~Tapping a notification opens the right screen~~ **Done** | me |
 | A4 | **Firebase App Check**: apps send tokens (Play Integrity / DeviceCheck); you register the apps in the console, then I switch on enforcement | you register, me enforce |
 | A5 | Privacy policy, terms, support pages **drafted** (`backend/hosting`); still: store privacy forms, AdMob GDPR message, `SUPPORT_EMAIL` variable | you publish / configure |
-| A6 | **Android release pipeline**: release signing key, Play Console app, internal testing track, Firebase Android app with release SHA-1 (needed for Google sign-in) | me + you |
+| A6 | **Android release pipeline**: ~~signing key, release workflow, Play listing~~ **built** (`docs/RELEASE-ANDROID.md`); still: Play Console app, first bundle, closed test (12 testers × 14 days), release SHA-1 in Firebase | you, me help |
 | A7 | **Store listings**: final name (trademark/availability check), screenshots in 4 languages, descriptions, age rating, review notes | me draft, you submit |
 | A8 | **Real AdMob units** and production ad settings | you create, me wire |
 | A9 | **Native-speaker review** of Hebrew, Arabic and Russian copy | you / friends |

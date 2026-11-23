@@ -15,31 +15,31 @@ html,body{overflow:hidden;background:#951F35}
 </style></head><body><div id="c"><div class="rays"></div></div>
 <script>
 const P=new URLSearchParams(location.search),kind=P.get('kind'),lang=P.get('lang');
-const S={header:{W:3840,H:1646,safe:[1097,493,1646,661]},search:{W:3840,H:2560,safe:[836,765,2168,1030]}}[kind];
+const S={header:{W:3840,H:1646,safe:[1097,493,1646,661]},search:{W:3840,H:2560,safe:[836,765,2168,1030]},feature:{W:1024,H:500,safe:[132,110,760,280]}}[kind];
 const T={en:['Share wishes.','Keep surprises.','Fraunces',false],he:['משתפים משאלות,','שומרים הפתעות','FrankRuhl',true],ar:['أمنيات تُشارك','ومفاجآت تُحفظ','Naskh',true],ru:['Делитесь желаниями.','Храните сюрпризы.','Lora',false]}[lang];
 const c=document.getElementById('c');c.style.width=S.W+'px';c.style.height=S.H+'px';
-let seed=kind==='header'?7:11;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
-const [sx,sy,sw,sh]=S.safe;const pad=kind==='header'?150:180;
+let seed=kind==='header'?7:kind==='feature'?5:11;const rnd=()=>{seed=(seed*16807)%2147483647;return (seed-1)/2147483646};
+const [sx,sy,sw,sh]=S.safe;const k=S.W/3840;const pad=(kind==='header'?150:180)*k;
 const clear=(x,y,r)=>!(x+r>sx-pad&&x-r<sx+sw+pad&&y+r>sy-pad&&y-r<sy+sh+pad);
 // warm glow behind hero
 const gl=document.createElement('div');gl.className='glow';const gr=sh*1.5;
 // scattered gifts in the outer (auxiliary) area: far = small + blurred, near = big + sharp
-const placed=[];let tries=0;const want=kind==='header'?22:30;
+const placed=[];let tries=0;const want=kind==='header'?22:kind==='feature'?16:30;
 while(placed.length<want&&tries<4000){tries++;
- const size=(kind==='header'?170:200)+rnd()*(kind==='header'?430:520);
+ const size=((kind==='search'?200:170)+rnd()*(kind==='search'?520:430))*(kind==='feature'?0.3:1);
  const x=rnd()*S.W,y=rnd()*S.H,r=size*.38;
  if(!clear(x,y,r))continue;
  if(placed.some(p=>Math.hypot(p.x-x,p.y-y)<(p.r+r)*0.95))continue;
  placed.push({x,y,r,size});}
 placed.sort((a,b)=>a.size-b.size);
 for(const p of placed){const im=document.createElement('img');im.src='gift.svg';im.className='g';
- const depth=(p.size-170)/520; // 0 far .. 1 near
- im.style.cssText+=`width:${p.size}px;height:${p.size}px;left:${p.x-p.size/2}px;top:${p.y-p.size/2}px;transform:rotate(${(rnd()-.5)*44}deg);filter:blur(${(1-depth)*9}px) drop-shadow(0 ${20*depth}px ${30*depth}px rgba(70,0,20,.35));opacity:${.55+.45*depth}`;
+ const depth=(p.size/(kind==='feature'?0.3:1)-170)/520; // 0 far .. 1 near
+ im.style.cssText+=`width:${p.size}px;height:${p.size}px;left:${p.x-p.size/2}px;top:${p.y-p.size/2}px;transform:rotate(${(rnd()-.5)*44}deg);filter:blur(${(1-depth)*9*k}px) drop-shadow(0 ${20*depth*k}px ${30*depth*k}px rgba(70,0,20,.35));opacity:${.55+.45*depth}`;
  c.appendChild(im);}
 // sparkles
 const star=(x,y,s,o)=>{const d=document.createElement('div');d.className='sp';d.style.cssText=`left:${x-s/2}px;top:${y-s/2}px;width:${s}px;height:${s}px;opacity:${o}`;
  d.innerHTML=`<svg viewBox="-34 -34 68 68" width="${s}" height="${s}"><path d="M 0 -34 C 6 -8 8 -6 34 0 C 8 6 6 8 0 34 C -6 8 -8 6 -34 0 C -8 -6 -6 -8 0 -34 Z" fill="#FFE7B0"/></svg>`;c.appendChild(d)};
-for(let i=0;i<(kind==='header'?60:80);i++){const x=rnd()*S.W,y=rnd()*S.H;if(!clear(x,y,20))continue;star(x,y,14+rnd()*46,.35+rnd()*.6)}
+for(let i=0;i<(kind==='search'?80:60);i++){const x=rnd()*S.W,y=rnd()*S.H;if(!clear(x,y,20*k))continue;star(x,y,(14+rnd()*46)*Math.max(k,.4),.35+rnd()*.6)}
 // hero: gift + two lines, inside the safe area
 const giftBox=sh*1.22; // the icon gift fills ~80% of its box
 const gap=sh*0.04;
@@ -54,7 +54,7 @@ txt.style.whiteSpace='nowrap';
 txt.innerHTML=`<div class="l1"><span>${T[0]}</span></div><div class="l2"><span>${T[1]}</span></div>`;
 const layoutText=()=>{fs=sh*0.25;fit();while([...txt.querySelectorAll('span')].some(e=>e.getBoundingClientRect().width>textW-4)&&fs>20){fs-=3;fit()}};
 const giftLeft=T[3]? sx+sw-giftBox*0.89 : sx-giftBox*0.11;
-hero.style.cssText+=`width:${giftBox}px;height:${giftBox}px;left:${giftLeft}px;top:${sy+sh/2-giftBox*0.52}px;filter:drop-shadow(0 40px 60px rgba(70,0,20,.45))`;
+hero.style.cssText+=`width:${giftBox}px;height:${giftBox}px;left:${giftLeft}px;top:${sy+sh/2-giftBox*0.52}px;filter:drop-shadow(0 ${40*k}px ${60*k}px rgba(70,0,20,.45))`;
 txt.style.left=(T[3]? sx : sx+giftBox*0.78+gap)+'px';txt.style.top=sy+'px';txt.style.textAlign=T[3]?'right':'left';
 gl.style.cssText+=`width:${gr*1.6}px;height:${gr}px;left:${giftLeft+giftBox/2-gr*.8}px;top:${sy+sh/2-gr/2}px`;
 window.ready=Promise.all([document.fonts.load(`100px ${T[2]}`,T[0]+T[1]),...[...document.images].map(i=>i.decode().catch(()=>{}))]).then(layoutText);

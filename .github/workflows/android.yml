@@ -37,6 +37,9 @@ jobs:
           if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > app/google-services.json; fi
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
+      - name: Build release bundle (shrunk with R8, unsigned)
+        # Same build as the Play release, without the signing key: catches R8 / keep-rule problems early.
+        run: ./gradlew :app:bundleRelease --stacktrace
       - name: Unit tests
         run: ./gradlew testDebugUnitTest -x :app:testDebugUnitTest
       - name: Screenshot tests (renders every main screen)

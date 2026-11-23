@@ -1,0 +1,188 @@
+name: Google Play release
+
+# 1. bundle: builds the signed release bundle (real ads, Firebase config, R8) and, when a Play
+#    service account is configured, uploads it to a testing track. Without one it only builds:
+#    download "thinkofme-release-aab" for the first upload, which Google requires by hand.
+# 2. listing: texts in four languages (store/google-play), icon, feature graphic and phone
+#    screenshots framed from the Android screenshot tests. Download "play-store-graphics".
+# See docs/RELEASE-ANDROID.md.
+on:
+  workflow_dispatch:
+    inputs:
+      track:
+        description: Play track (internal = Internal testing, alpha = Closed testing, production)
+        type: choice
+        options: [internal, alpha, production]
+        default: alpha
+      bundle:
+        description: Build the signed app bundle
+        type: boolean
+        default: true
+      listing:
+        description: Build the store listing graphics (texts, icon, feature graphic, screenshots)
+        type: boolean
+        default: true
+      upload:
+        description: Upload to Google Play (off = only build, to review the artifacts)
+        type: boolean
+        default: true
+  push:
+    tags: ["android-v*"]
+
+concurrency:
+  group: play-release
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  release:
+    if: ${{ github.event_name == 'push' || inputs.bundle }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - name: Install Android platform
+        run: |
+          sdkmanager=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+          yes | "$sdkmanager" --licenses > /dev/null || true
+          "$sdkmanager" "platforms;android-37.0" "build-tools;37.0.0"
+      - uses: gradle/actions/setup-gradle@v5
+
+      - name: Check secrets
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+          STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          FIREBASE: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+          ADMOB_APP: ${{ secrets.ADMOB_APP_ID_ANDROID }}
+          ADMOB_NATIVE: ${{ secrets.ADMOB_NATIVE_UNIT_ANDROID }}
+          ADMOB_BANNER: ${{ secrets.ADMOB_BANNER_UNIT_ANDROID }}
+        run: |
+          missing=""
+          [ -z "$KEYSTORE" ] && missing="$missing ANDROID_UPLOAD_KEYSTORE_B64"
+          [ -z "$STORE_PASSWORD" ] && missing="$missing ANDROID_UPLOAD_KEYSTORE_PASSWORD"
+          [ -z "$FIREBASE" ] && missing="$missing GOOGLE_SERVICES_JSON_B64"
+          if [ -n "$missing" ]; then echo "::error::Missing repository secrets:$missing"; exit 1; fi
+          if [ -z "$ADMOB_APP" ] || [ -z "$ADMOB_NATIVE" ] || [ -z "$ADMOB_BANNER" ]; then
+            echo "::warning::Android AdMob secrets missing: this build shows Google's test ads."
+          fi
+
+      - name: Signing key and Firebase config
+        env:
+          KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
+          FIREBASE: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+        run: |
+          printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/upload.jks"
+          printf '%s' "$FIREBASE" | base64 -d > app/google-services.json
+
+      - name: Version code
+        # Unique and increasing across runs and re-runs.
+        run: echo "VERSION_CODE=$(( 1000 + ${{ github.run_number }} * 10 + ${{ github.run_attempt }} ))" >> "$GITHUB_ENV"
+
+      - name: Build signed release bundle
+        env:
+          THINKOFME_KEYSTORE_PATH: ${{ runner.temp }}/upload.jks
+          THINKOFME_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          THINKOFME_KEY_ALIAS: upload
+          THINKOFME_KEY_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+          ADMOB_APP: ${{ secrets.ADMOB_APP_ID_ANDROID }}
+          ADMOB_NATIVE: ${{ secrets.ADMOB_NATIVE_UNIT_ANDROID }}
+          ADMOB_BANNER: ${{ secrets.ADMOB_BANNER_UNIT_ANDROID }}
+        run: |
+          props="-PversionCode=$VERSION_CODE"
+          [ -n "$ADMOB_APP" ] && props="$props -PadmobAppId=$ADMOB_APP"
+          [ -n "$ADMOB_NATIVE" ] && props="$props -PadmobNativeUnit=$ADMOB_NATIVE"
+          [ -n "$ADMOB_BANNER" ] && props="$props -PadmobBannerUnit=$ADMOB_BANNER"
+          ./gradlew :app:bundleRelease $props --stacktrace
+          cp app/build/outputs/bundle/release/app-release.aab "$RUNNER_TEMP/thinkofme-$VERSION_CODE.aab"
+
+      - name: Upload key fingerprints (for Firebase)
+        env:
+          STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
+        run: |
+          {
+            echo "## Version code $VERSION_CODE"
+            echo
+            echo "Upload key fingerprints (add both to the Firebase Android app → SHA certificate fingerprints):"
+            echo '```'
+            keytool -list -v -keystore "$RUNNER_TEMP/upload.jks" -storepass "$STORE_PASSWORD" -alias upload | grep -E "SHA1:|SHA256:"
+            echo '```'
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - uses: actions/upload-artifact@v5
+        with:
+          name: thinkofme-release-aab
+          path: ${{ runner.temp }}/thinkofme-*.aab
+
+      - name: Upload to Google Play
+        if: ${{ github.event_name == 'push' || inputs.upload }}
+        working-directory: .
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          TRACK: ${{ inputs.track || 'alpha' }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::notice::No PLAY_SERVICE_ACCOUNT_JSON secret yet: download the thinkofme-release-aab artifact and upload it in Play Console."
+            exit 0
+          fi
+          pip install --quiet "pyjwt[crypto]==2.10.1" "requests==2.32.5"
+          python3 scripts/play_release.py "$RUNNER_TEMP"/thinkofme-*.aab --track "$TRACK" --notes-dir store/google-play/release-notes
+
+  listing:
+    if: ${{ github.event_name == 'workflow_dispatch' && inputs.listing }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: 21
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+      - name: Install Android platform
+        run: |
+          sdkmanager=$(ls -d "$ANDROID_HOME"/cmdline-tools/*/bin/sdkmanager | sort -V | tail -1)
+          yes | "$sdkmanager" --licenses > /dev/null || true
+          "$sdkmanager" "platforms;android-37.0" "build-tools;37.0.0"
+      - uses: gradle/actions/setup-gradle@v5
+      - name: Render the app screens (demo data)
+        working-directory: android
+        run: ./gradlew :app:recordRoborazziDebug
+      - name: Install image tools
+        run: |
+          pip install --quiet "pillow==12.0.0" "pyjwt[crypto]==2.10.1" "requests==2.32.5"
+          python3 -c "from PIL import features; assert features.check('raqm'), 'Pillow needs raqm for Hebrew and Arabic'"
+          npm install --no-save --prefix "$RUNNER_TEMP/pw" playwright@1.63.0
+          "$RUNNER_TEMP/pw/node_modules/.bin/playwright" install --with-deps chromium
+      - name: Frame screenshots and draw feature graphics
+        env:
+          NODE_PATH: ${{ runner.temp }}/pw/node_modules
+        run: |
+          python3 store/google-play/compose.py android/app/build/outputs/roborazzi play-store-graphics
+          node store/app-store/creative/render.js
+          cp store/app-store/creative/out/*-feature.png play-store-graphics/
+      - uses: actions/upload-artifact@v5
+        with:
+          name: play-store-graphics
+          path: play-store-graphics
+      - name: Push listing to Google Play
+        if: ${{ inputs.upload }}
+        env:
+          PLAY_SERVICE_ACCOUNT_JSON: ${{ secrets.PLAY_SERVICE_ACCOUNT_JSON }}
+          SUPPORT_EMAIL: ${{ vars.SUPPORT_EMAIL }}
+        run: |
+          if [ -z "$PLAY_SERVICE_ACCOUNT_JSON" ]; then
+            echo "::notice::No PLAY_SERVICE_ACCOUNT_JSON secret yet: the graphics are in the play-store-graphics artifact."
+            exit 0
+          fi
+          python3 scripts/play_listing.py play-store-graphics

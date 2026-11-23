@@ -37,12 +37,13 @@ def gradient() -> Image.Image:
         draw.line([(0, y), (WIDTH, y)], fill=tuple(int(TOP[i] + (BOTTOM[i] - TOP[i]) * t) for i in range(3)))
     # A soft accent glow behind the device.
     glow = Image.new("RGBA", (WIDTH, HEIGHT), (0, 0, 0, 0))
-    ImageDraw.Draw(glow).ellipse((-200, 1100, WIDTH + 200, HEIGHT + 600), fill=(194, 58, 63, 38))
-    return Image.alpha_composite(image.convert("RGBA"), glow.filter(ImageFilter.GaussianBlur(160)))
+    k = WIDTH / 1290
+    ImageDraw.Draw(glow).ellipse((-200 * k, HEIGHT - 1696 * k, WIDTH + 200 * k, HEIGHT + 600 * k), fill=(194, 58, 63, 38))
+    return Image.alpha_composite(image.convert("RGBA"), glow.filter(ImageFilter.GaussianBlur(160 * k)))
 
 
 def fitted_font(path: Path, lines: list[str], max_width: int, size: int) -> ImageFont.FreeTypeFont:
-    while size > 60:
+    while size > 60 * WIDTH / 1290:
         font = ImageFont.truetype(str(path), size, layout_engine=ImageFont.Layout.RAQM)
         if all(font.getlength(line) <= max_width for line in lines):
             return font
@@ -58,9 +59,11 @@ def compose(raw: Path, locale: str, lines: list[str]) -> Image.Image:
     direction = "rtl" if rtl else "ltr"
     language = {"en-US": "en", "he": "he", "ar-SA": "ar", "ru": "ru"}[locale]
 
-    title = fitted_font(font_path, lines[:1], WIDTH - 160, 118)
-    subtitle = fitted_font(font_path, lines[1:2], WIDTH - 160, 96)
-    y = 210
+    # Sizes are designed for the 1290-wide App Store image and scale with the canvas.
+    k = WIDTH / 1290
+    title = fitted_font(font_path, lines[:1], WIDTH - int(160 * k), int(118 * k))
+    subtitle = fitted_font(font_path, lines[1:2], WIDTH - int(160 * k), int(96 * k))
+    y = int(210 * k)
     for line, font, color in ((lines[0], title, INK), (lines[1], subtitle, MUTED if len(lines[1]) > 18 else INK)):
         width = font.getlength(line, direction=direction, language=language)
         draw.text(((WIDTH - width) / 2, y), line, font=font, fill=color, direction=direction, language=language)
@@ -68,20 +71,20 @@ def compose(raw: Path, locale: str, lines: list[str]) -> Image.Image:
 
     # The screenshot as a rounded device card.
     shot = Image.open(raw).convert("RGB")
-    card_width = 1060
+    card_width = int(1060 * k)
     card_height = int(shot.height * card_width / shot.width)
     shot = shot.resize((card_width, card_height), Image.LANCZOS)
-    radius = 96
+    radius = int(96 * k)
     mask = Image.new("L", shot.size, 0)
     ImageDraw.Draw(mask).rounded_rectangle((0, 0, card_width, card_height), radius, fill=255)
     left = (WIDTH - card_width) // 2
-    top = y + 90
+    top = y + int(90 * k)
 
     shadow = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    ImageDraw.Draw(shadow).rounded_rectangle((left, top + 30, left + card_width, top + card_height + 30), radius, fill=(60, 20, 30, 70))
-    canvas = Image.alpha_composite(canvas, shadow.filter(ImageFilter.GaussianBlur(40)))
+    ImageDraw.Draw(shadow).rounded_rectangle((left, top + 30 * k, left + card_width, top + card_height + 30 * k), radius, fill=(60, 20, 30, 70))
+    canvas = Image.alpha_composite(canvas, shadow.filter(ImageFilter.GaussianBlur(40 * k)))
     frame = Image.new("RGBA", canvas.size, (0, 0, 0, 0))
-    ImageDraw.Draw(frame).rounded_rectangle((left - 14, top - 14, left + card_width + 14, top + card_height + 14), radius + 14, fill=(36, 22, 40, 255))
+    ImageDraw.Draw(frame).rounded_rectangle((left - 14 * k, top - 14 * k, left + card_width + 14 * k, top + card_height + 14 * k), radius + 14 * k, fill=(36, 22, 40, 255))
     canvas = Image.alpha_composite(canvas, frame)
     canvas.paste(shot, (left, top), mask)
     return canvas.convert("RGB")
