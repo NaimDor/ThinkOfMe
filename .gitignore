@@ -51,3 +51,4 @@ android/build-logic/**/build/
 # Python
 __pycache__/
 *.pyc
+store/app-store/creative/out/
