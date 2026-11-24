@@ -34,7 +34,15 @@ jobs:
         env:
           GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
         run: |
-          if [ -n "$GOOGLE_SERVICES_JSON_B64" ]; then echo "$GOOGLE_SERVICES_JSON_B64" | base64 -d > app/google-services.json; fi
+          FIREBASE="$GOOGLE_SERVICES_JSON_B64"
+          [ -z "$FIREBASE" ] && exit 0
+          # Accept either the plain google-services.json contents or base64 of the file.
+          if printf '%s' "$FIREBASE" | head -c 20 | grep -q '{'; then
+            printf '%s\n' "$FIREBASE" > app/google-services.json
+          else
+            printf '%s' "$FIREBASE" | base64 -d > app/google-services.json
+          fi
+          python3 -c "import json; c=json.load(open('app/google-services.json')); assert any(x['client_info']['android_client_info']['package_name']=='com.thinkofme.app' for x in c['client']), 'google-services.json has no com.thinkofme.app app'"
       - name: Build debug APK
         run: ./gradlew :app:assembleDebug --stacktrace
       - name: Build release bundle (shrunk with R8, unsigned)

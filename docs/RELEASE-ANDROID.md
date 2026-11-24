@@ -13,7 +13,7 @@ Package name: `com.thinkofme.app`. Languages: en-US (default), iw-IL (Hebrew), a
 | `ANDROID_UPLOAD_KEYSTORE_B64` | the long line from the upload key file Claude sent |
 | `ANDROID_UPLOAD_KEYSTORE_PASSWORD` | the password from the same file |
 | `ADMOB_APP_ID_ANDROID`, `ADMOB_NATIVE_UNIT_ANDROID`, `ADMOB_BANNER_UNIT_ANDROID` | already set |
-| `GOOGLE_SERVICES_JSON_B64` | already set (Firebase Android app `com.thinkofme.app`) |
+| `GOOGLE_SERVICES_JSON_B64` | the Firebase Android app's `google-services.json`: paste the file's contents as they are (base64 also works). Create the app first: Firebase console → Project settings → Add app → Android, package `com.thinkofme.app`, with the upload key's SHA-1 |
 | `PLAY_SERVICE_ACCOUNT_JSON` | step 4 |
 
 Keep the upload key file in a password manager. If it is ever lost, Play Console can reset the
