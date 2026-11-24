@@ -61,7 +61,7 @@ jobs:
         env:
           KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
           STORE_PASSWORD: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_PASSWORD }}
-          FIREBASE: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+          FIREBASE: ${{ secrets.GOOGLE_SERVICES_JSON_B64 || secrets.GOOGLE_SERVICE_JSON_B64 }}
           ADMOB_APP: ${{ secrets.ADMOB_APP_ID_ANDROID }}
           ADMOB_NATIVE: ${{ secrets.ADMOB_NATIVE_UNIT_ANDROID }}
           ADMOB_BANNER: ${{ secrets.ADMOB_BANNER_UNIT_ANDROID }}
@@ -78,7 +78,7 @@ jobs:
       - name: Signing key and Firebase config
         env:
           KEYSTORE: ${{ secrets.ANDROID_UPLOAD_KEYSTORE_B64 }}
-          FIREBASE: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+          FIREBASE: ${{ secrets.GOOGLE_SERVICES_JSON_B64 || secrets.GOOGLE_SERVICE_JSON_B64 }}
         run: |
           printf '%s' "$KEYSTORE" | base64 -d > "$RUNNER_TEMP/upload.jks"
           # Accept either the plain google-services.json contents or base64 of the file.

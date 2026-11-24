@@ -32,7 +32,7 @@ jobs:
       - uses: gradle/actions/setup-gradle@v5
       - name: Firebase config (optional)
         env:
-          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 }}
+          GOOGLE_SERVICES_JSON_B64: ${{ secrets.GOOGLE_SERVICES_JSON_B64 || secrets.GOOGLE_SERVICE_JSON_B64 }}
         run: |
           FIREBASE="$GOOGLE_SERVICES_JSON_B64"
           [ -z "$FIREBASE" ] && exit 0
