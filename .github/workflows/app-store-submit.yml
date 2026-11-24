@@ -1,0 +1,33 @@
+name: App Store submit
+
+# Submits the version being prepared for App Review (after the App Store listing workflow).
+# Release stays manual: nothing goes live until "Release This Version" in App Store Connect.
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to submit
+        default: "1.0"
+      confirm:
+        description: Type SUBMIT to send it to Apple
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  submit:
+    if: ${{ inputs.confirm == 'SUBMIT' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - name: Submit for App Review
+        env:
+          ASC_KEY_ID: ${{ secrets.APP_STORE_CONNECT_KEY_ID }}
+          ASC_ISSUER_ID: ${{ secrets.APP_STORE_CONNECT_ISSUER_ID }}
+          ASC_KEY_P8: ${{ secrets.APP_STORE_CONNECT_KEY_P8 }}
+          BUNDLE_ID: com.thinkofme.app
+          VERSION: ${{ inputs.version }}
+        run: |
+          pip install --quiet "pyjwt[crypto]==2.10.1" "requests==2.32.5"
+          python3 scripts/app_store_submit.py
