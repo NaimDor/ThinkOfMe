@@ -4,7 +4,8 @@ after approval nothing goes live until someone presses "Release This Version".
 Checks first: the version is editable (Prepare for Submission or rejected) and has a build.
 Then: reuse an open review submission or create one, add the version, submit.
 
-Environment: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, BUNDLE_ID, optional VERSION (default 1.0).
+Environment: ASC_KEY_ID, ASC_ISSUER_ID, ASC_KEY_P8, BUNDLE_ID, optional VERSION (default 1.0),
+optional EXCLUDE_TERRITORIES (comma-separated territory codes to make unavailable first, e.g. CHN).
 """
 import os
 import sys
@@ -15,9 +16,37 @@ EDITABLE = {"PREPARE_FOR_SUBMISSION", "DEVELOPER_REJECTED", "REJECTED", "METADAT
 OPEN = {"READY_FOR_REVIEW"}
 
 
+def exclude_territories(app: str, codes: set[str]) -> None:
+    """Makes the app unavailable in these territories (e.g. CHN: mainland China needs an ICP
+    filing and AI / security declarations, and the app's Google services are blocked there)."""
+    if not codes:
+        return
+    availability = call("GET", f"/v1/apps/{app}/appAvailabilityV2")["data"]
+    url = f"/v2/appAvailabilities/{availability['id']}/territoryAvailabilities?include=territory&limit=200"
+    found = set()
+    while url:
+        page = call("GET", url)
+        for item in page.get("data", []):
+            code = ((item.get("relationships") or {}).get("territory") or {}).get("data", {}).get("id")
+            if code in codes:
+                found.add(code)
+                if item["attributes"].get("available"):
+                    call("PATCH", f"/v1/territoryAvailabilities/{item['id']}", {"data": {
+                        "type": "territoryAvailabilities", "id": item["id"], "attributes": {"available": False},
+                    }})
+                    step(f"{code}: made unavailable")
+                else:
+                    step(f"{code}: already unavailable")
+        nxt = (page.get("links") or {}).get("next")
+        url = nxt.replace("https://api.appstoreconnect.apple.com", "") if nxt else None
+    for code in sorted(codes - found):
+        print(f"::warning::Territory {code} not found in the app's availability.")
+
+
 def main() -> int:
     want = os.environ.get("VERSION") or "1.0"
     app = app_id(os.environ["BUNDLE_ID"])
+    exclude_territories(app, {c.strip().upper() for c in (os.environ.get("EXCLUDE_TERRITORIES") or "").split(",") if c.strip()})
     versions = call("GET", f"/v1/apps/{app}/appStoreVersions?filter[platform]=IOS&filter[versionString]={want}")["data"]
     if not versions:
         print(f"::error::No iOS version {want} in App Store Connect.")
