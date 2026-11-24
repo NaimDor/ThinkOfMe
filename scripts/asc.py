@@ -34,7 +34,14 @@ def call(method: str, path: str, body: dict | None = None, ok=(200, 201, 204)) -
     response = SESSION.request(method, API + path, json=body, timeout=60)
     if response.status_code not in ok:
         errors = response.json().get("errors", []) if response.content else []
-        details = "; ".join(f"{e.get('title')}: {e.get('detail')}" for e in errors) or response.text[:500]
+        parts = []
+        for e in errors:
+            parts.append(f"{e.get('title')}: {e.get('detail')}")
+            # Apple puts the actual reasons (missing privacy answers, screenshots, ...) here.
+            for resource, problems in ((e.get("meta") or {}).get("associatedErrors") or {}).items():
+                for problem in problems:
+                    parts.append(f"  - {problem.get('title') or ''}: {problem.get('detail') or ''} [{problem.get('code')}] ({resource})")
+        details = "\n".join(parts) or response.text[:500]
         raise ApiError(method, path, response.status_code, details)
     return response.json() if response.content else {}
 
