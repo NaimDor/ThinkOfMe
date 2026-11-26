@@ -63,7 +63,9 @@ android {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            if (secret("THINKOFME_KEYSTORE_PATH") != null) signingConfig = signingConfigs.getByName("release")
+            // Play builds use the upload key; without it (CI launch test, local runs) the debug key,
+            // so the shrunk release build can still be installed and started on an emulator.
+            signingConfig = signingConfigs.getByName(if (secret("THINKOFME_KEYSTORE_PATH") != null) "release" else "debug")
             manifestPlaceholders["admobAppId"] = (findProperty("admobAppId") as String?) ?: testAdmobAppId
             buildConfigField("String", "AD_UNIT_NATIVE", "\"${(findProperty("admobNativeUnit") as String?) ?: testNativeUnit}\"")
             buildConfigField("String", "AD_UNIT_BANNER", "\"${(findProperty("admobBannerUnit") as String?) ?: testBannerUnit}\"")
