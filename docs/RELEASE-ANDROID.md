@@ -85,7 +85,7 @@ listing is pushed in the same run.
 2. Firebase console → Project settings → Android app `com.thinkofme.app` → **Add fingerprint**:
    add all four. Download the new `google-services.json`, base64 it into `GOOGLE_SERVICES_JSON_B64`.
    Without the app signing key's SHA-1, Google sign-in fails on Play builds.
-3. GitHub secret `ANDROID_CERT_SHA` = the app signing key SHA-256 (comma-separated if you add the
+3. GitHub secret `ANDROID_CERT_SHA256` (or `ANDROID_CERT_SHA`) = the app signing key SHA-256 (comma-separated if you add the
    upload key too), then run **Deploy backend** so invite links open the app.
 
 ## 7. Closed test → production
