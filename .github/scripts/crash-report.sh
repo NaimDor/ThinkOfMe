@@ -5,10 +5,24 @@ set -uo pipefail
 days="${DAYS:-7}"
 case "$days" in (*[!0-9]*|'') echo "::error::days must be a number"; exit 1;; esac
 dataset="$PROJECT:firebase_crashlytics"
-tables=$(bq ls --format=json "$dataset" 2>/dev/null | python3 -c 'import json,sys; print("\n".join(t["tableReference"]["tableId"] for t in json.load(sys.stdin)))' || true)
-if [ -z "$tables" ]; then
-  echo "::error::No Crashlytics export yet. Firebase console → Project settings → Integrations → BigQuery → Link, turn on Crashlytics (with streaming). Data appears from then on."
+listing=$(bq ls --format=json "$dataset" 2>&1)
+if ! tables=$(printf '%s' "$listing" | python3 -c 'import json,sys; print("\n".join(t["tableReference"]["tableId"] for t in json.load(sys.stdin)))' 2>/dev/null); then
+  echo "BigQuery said: $listing"
+  if printf '%s' "$listing" | grep -qi "access denied\|permission\|403"; then
+    echo "::error::The deploy service account can't read BigQuery: give it BigQuery Data Viewer and BigQuery Job User (Google Cloud console → IAM)."
+  elif printf '%s' "$listing" | grep -qi "not found"; then
+    echo "::notice::The firebase_crashlytics dataset doesn't exist yet. Firebase creates it when the first crash after linking is exported; nothing to fix."
+    echo "No crashes exported yet (dataset not created)." >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+    exit 0
+  else
+    echo "::error::Unexpected answer from BigQuery (above)."
+  fi
   exit 1
+fi
+if [ -z "$tables" ]; then
+  echo "::notice::The dataset exists but has no tables yet: they appear with the first exported crash."
+  echo "No crashes exported yet (no tables)." >> "${GITHUB_STEP_SUMMARY:-/dev/stdout}"
+  exit 0
 fi
 out="${GITHUB_STEP_SUMMARY:-/dev/stdout}"
 echo "## Crashes in the last $days days" >> "$out"
