@@ -18,12 +18,11 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
-      - uses: google-github-actions/auth@v2
-        with:
-          credentials_json: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
-      - uses: google-github-actions/setup-gcloud@v2
       - name: Crashes per issue and version
         env:
+          SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT_JSON }}
           PROJECT: ${{ secrets.FIREBASE_PROJECT_ID }}
           DAYS: ${{ inputs.days }}
-        run: bash .github/scripts/crash-report.sh
+        run: |
+          pip install --quiet "google-cloud-bigquery==3.47.0"
+          python3 scripts/crash_report.py
