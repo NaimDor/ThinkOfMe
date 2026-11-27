@@ -98,3 +98,19 @@ Crash Data / Performance Data** and **Identifiers → Device ID**. (Already in `
 
 **Google Play → Data safety:** **App activity → App interactions**: collected, not shared, purpose
 **Analytics**; **Device or other IDs**: add purpose **Analytics**.
+
+## Crash reports without the console (Actions → Crash report)
+
+Crashlytics has no read API, but it can export every crash to BigQuery. The **Crash report**
+workflow queries that export with the deploy key and prints, per app and platform, each crash
+issue by version (count, users, last seen) and the latest stack of each issue.
+
+One-time setup:
+1. Firebase console → Project settings → **Integrations → BigQuery → Link**. Turn on
+   **Crashlytics**, with **streaming** (near real time; needs the Blaze plan, which the project
+   already uses). Data is exported from that moment on, not retroactively.
+2. Google Cloud console → IAM → the deploy service account (the one in
+   `FIREBASE_SERVICE_ACCOUNT_JSON`): make sure it has **BigQuery Data Viewer** and
+   **BigQuery Job User** (an Editor or Owner role already includes both).
+
+Then run Actions → **Crash report** (days back, default 7). Claude can run it and read the result.
